@@ -260,6 +260,60 @@ async def get_changelog(
             detail=f"Error al obtener changelog: {str(e)}"
         )
 
+@router.post("/publish")
+async def publish_update(version_info: dict):
+    """
+    Publica una nueva versión al sistema de actualizaciones.
+    Actualiza LATEST_VERSION y VERSION_HISTORY con la nueva información.
+    """
+    global LATEST_VERSION, VERSION_HISTORY
+    
+    try:
+        # Crear el objeto VersionInfo desde el dict
+        new_version = VersionInfo(
+            version=version_info["version"],
+            build_number=version_info["build_number"],
+            release_date=version_info["release_date"],
+            channel="stable",
+            download_url=version_info["download_url"],
+            file_size=version_info["file_size"],
+            checksum=version_info.get("checksum", ""),
+            minimum_version=version_info.get("minimum_version", "2.0.0"),
+            is_mandatory=version_info.get("required", False),
+            changelog=version_info["changelog"]
+        )
+        
+        # Actualizar la versión más reciente
+        LATEST_VERSION = new_version
+        
+        # Agregar al historial
+        changelog_entry = ChangelogEntry(
+            version=new_version.version,
+            date=new_version.release_date.split("T")[0],  # Solo la fecha sin hora
+            changes=new_version.changelog
+        )
+        
+        # Insertar al inicio del historial (más reciente primero)
+        VERSION_HISTORY.insert(0, changelog_entry)
+        
+        return {
+            "success": True,
+            "message": f"Versión {new_version.version} publicada exitosamente",
+            "version": new_version.version,
+            "download_url": new_version.download_url
+        }
+        
+    except KeyError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Campo requerido faltante: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al publicar actualización: {str(e)}"
+        )
+
 @router.get("/health")
 async def update_service_health():
     """
