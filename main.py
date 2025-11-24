@@ -1235,3 +1235,5 @@ except Exception as e:
 print("✅ Endpoints de autenticación registrados")
 print(f"🔐 Roles disponibles: {[r.value for r in UserRole]}")
 print(f"🏫 Campus disponibles: {[c.value for c in Campus]}")
+
+# Force redeploy 2025-11-24 13:35
