@@ -209,6 +209,38 @@ def get_carnet(id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail={"code": 500, "message": str(e)})
 
+@app.get("/carnet/search")
+def search_carnet_by_name(nombre: str):
+    """Busca carnets por nombre (búsqueda parcial case-insensitive)"""
+    try:
+        # Búsqueda con CONTAINS y UPPER para case-insensitive
+        results = carnets.query_items(
+            """SELECT TOP 10 * FROM c 
+               WHERE CONTAINS(UPPER(c.nombreCompleto), UPPER(@nombre))
+                 AND NOT STARTSWITH(c.id, 'cita:')
+                 AND NOT IS_DEFINED(c.inicio)
+                 AND NOT IS_DEFINED(c.fin)
+               ORDER BY c._ts DESC""",
+            params=[{"name": "@nombre", "value": nombre}]
+        )
+        
+        if results:
+            # Retornar el primer resultado (más reciente)
+            return results[0]
+        else:
+            raise HTTPException(status_code=404, detail={
+                "code": 404, 
+                "message": f"No se encontró carnet con nombre '{nombre}'"
+            })
+            
+    except CosmosHttpResponseError as e:
+        raise HTTPException(
+            status_code=e.status_code, 
+            detail={"code": e.status_code, "message": e.message}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"code": 500, "message": str(e)})
+
 @app.get("/notas/{matricula}")
 def get_notas(matricula: str):
     try:
