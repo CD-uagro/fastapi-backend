@@ -32,18 +32,25 @@ load_dotenv()
 
 app = FastAPI()
 
+# DEBUG: Always log startup info to diagnose Render deployment issues
+print("=" * 80)
+print(f"🚀 FASTAPI STARTING - Version check for /carnet/search endpoint")
+print(f"   File: {__file__}")
+print(f"   Time: {datetime.now().isoformat()}")
+import subprocess
+try:
+    commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
+                                        cwd=os.path.dirname(__file__) or '.').decode().strip()
+    print(f"   Git commit: {commit_hash}")
+except:
+    print(f"   Git commit: unknown (no git available)")
+
 # Startup configuration check (only for DEBUG_CITAS)
 if os.environ.get("DEBUG_CITAS", "false").lower() == "true":
-    import subprocess
-    try:
-        commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
-                                            cwd=os.path.dirname(__file__)).decode().strip()
-    except:
-        commit_hash = "unknown"
-
     print(f"APP_BOOT db={os.environ.get('COSMOS_DB', 'NOT_SET')} "
           f"container_citas={os.environ.get('COSMOS_CONTAINER_CITAS', 'NOT_SET')} "
           f"pk={os.environ.get('COSMOS_PK_CITAS', 'NOT_SET')}")
+print("=" * 80)
 
 # CORS para permitir requests del frontend
 app.add_middleware(
@@ -212,6 +219,7 @@ def get_carnet(id: str):
 @app.get("/carnet/search")
 def search_carnet_by_name(nombre: str):
     """Busca carnets por nombre (búsqueda parcial case-insensitive)"""
+    print(f"✅ ENDPOINT /carnet/search REGISTERED AND CALLED with nombre={nombre}")
     try:
         # Búsqueda con CONTAINS y UPPER para case-insensitive
         results = carnets.query_items(
