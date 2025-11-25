@@ -1,17 +1,21 @@
-# DEBUG: MUST BE FIRST - Print before ANY imports that might fail
-print("=" * 80)
-print("FASTAPI MAIN.PY LOADING - Checking for /carnet/search endpoint")
+# DEBUG: Use stderr to force output in Gunicorn logs
+import sys
 import subprocess
 import os
 from datetime import datetime
+
+sys.stderr.write("=" * 80 + "\n")
+sys.stderr.write("FASTAPI MAIN.PY LOADING - Checking for /carnet/search endpoint\n")
+sys.stderr.flush()
 try:
     commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
                                         cwd=os.path.dirname(os.path.abspath(__file__))).decode().strip()
-    print(f"   Git commit: {commit_hash}")
+    sys.stderr.write(f"   Git commit: {commit_hash}\n")
 except Exception as e:
-    print(f"   Git commit: unknown ({e})")
-print(f"   Time: {datetime.now().isoformat()}")
-print("=" * 80)
+    sys.stderr.write(f"   Git commit: unknown ({e})\n")
+sys.stderr.write(f"   Time: {datetime.now().isoformat()}\n")
+sys.stderr.write("=" * 80 + "\n")
+sys.stderr.flush()
 
 # Sistema de Autenticación CRES - v1.1
 from fastapi import FastAPI, HTTPException, Body, Depends, Request
@@ -45,9 +49,10 @@ load_dotenv()
 
 app = FastAPI()
 
-print("=" * 80)
-print("FASTAPI APP CREATED SUCCESSFULLY")
-print("=" * 80)
+sys.stderr.write("=" * 80 + "\n")
+sys.stderr.write("FASTAPI APP CREATED SUCCESSFULLY\n")
+sys.stderr.write("=" * 80 + "\n")
+sys.stderr.flush()
 
 # CORS para permitir requests del frontend
 app.add_middleware(
