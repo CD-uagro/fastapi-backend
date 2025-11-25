@@ -1,3 +1,18 @@
+# DEBUG: MUST BE FIRST - Print before ANY imports that might fail
+print("=" * 80)
+print("FASTAPI MAIN.PY LOADING - Checking for /carnet/search endpoint")
+import subprocess
+import os
+from datetime import datetime
+try:
+    commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
+                                        cwd=os.path.dirname(os.path.abspath(__file__))).decode().strip()
+    print(f"   Git commit: {commit_hash}")
+except Exception as e:
+    print(f"   Git commit: unknown ({e})")
+print(f"   Time: {datetime.now().isoformat()}")
+print("=" * 80)
+
 # Sistema de Autenticación CRES - v1.1
 from fastapi import FastAPI, HTTPException, Body, Depends, Request
 from fastapi.responses import JSONResponse
@@ -7,9 +22,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from cosmos_helper import CosmosDBHelper
 from azure.cosmos.exceptions import CosmosHttpResponseError
-import os
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
 from typing import Optional
 import uuid
 import json
@@ -32,24 +45,8 @@ load_dotenv()
 
 app = FastAPI()
 
-# DEBUG: Startup logging without emojis to avoid encoding issues
 print("=" * 80)
-print("FASTAPI STARTING - Version check for /carnet/search endpoint")
-print(f"   File: {__file__}")
-print(f"   Time: {datetime.now().isoformat()}")
-import subprocess
-try:
-    commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
-                                        cwd=os.path.dirname(__file__) or '.').decode().strip()
-    print(f"   Git commit: {commit_hash}")
-except:
-    print("   Git commit: unknown (no git available)")
-
-# Startup configuration check (only for DEBUG_CITAS)
-if os.environ.get("DEBUG_CITAS", "false").lower() == "true":
-    print(f"APP_BOOT db={os.environ.get('COSMOS_DB', 'NOT_SET')} "
-          f"container_citas={os.environ.get('COSMOS_CONTAINER_CITAS', 'NOT_SET')} "
-          f"pk={os.environ.get('COSMOS_PK_CITAS', 'NOT_SET')}")
+print("FASTAPI APP CREATED SUCCESSFULLY")
 print("=" * 80)
 
 # CORS para permitir requests del frontend
