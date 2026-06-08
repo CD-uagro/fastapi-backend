@@ -30,6 +30,7 @@ from dotenv import load_dotenv
 from typing import Optional
 import uuid
 import json
+import re
 
 # Importar router de actualizaciones
 from update_routes import router as updates_router
@@ -185,6 +186,151 @@ class VaccinationRecordModel(BaseModel):
     class Config:
         populate_by_name = True
 
+def _first_text(item: dict, *keys: str, default: str = "") -> str:
+    for key in keys:
+        value = item.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return default
+
+
+def _term_variants(term: str) -> list[str]:
+    normalized = term.strip().upper()
+    if not normalized:
+        return []
+
+    accents = {
+        "A": "Á",
+        "E": "É",
+        "I": "Í",
+        "O": "Ó",
+        "U": "Ú",
+        "N": "Ñ",
+    }
+    variants = {normalized}
+    for index, char in enumerate(normalized):
+        accent = accents.get(char)
+        if accent:
+            variants.add(normalized[:index] + accent + normalized[index + 1:])
+    for index, char in enumerate(normalized):
+        if char == "U":
+            variants.add(normalized[:index] + "Ü" + normalized[index + 1:])
+    return sorted(variants)
+
+
+def _build_search_clause(terms: list[str]) -> tuple[str, list[dict]]:
+    searchable_fields = [
+        "nombreCompleto",
+        "nombre",
+        "nombre_completo",
+        "estudiante",
+        "matricula",
+        "programa",
+        "escuelaUnidadAcademica",
+        "escuela",
+        "unidadAcademica",
+        "campus",
+        "grupo",
+    ]
+    params = []
+    term_clauses = []
+
+    for term_index, term in enumerate(terms):
+        variant_clauses = []
+        for variant_index, variant in enumerate(_term_variants(term)):
+            param_name = f"@term{term_index}_{variant_index}"
+            params.append({"name": param_name, "value": variant})
+            field_clauses = [
+                f"(IS_DEFINED(c.{field}) AND CONTAINS(UPPER(c.{field}), {param_name}))"
+                for field in searchable_fields
+            ]
+            variant_clauses.append("(" + " OR ".join(field_clauses) + ")")
+        if variant_clauses:
+            term_clauses.append("(" + " OR ".join(variant_clauses) + ")")
+
+    return " AND ".join(term_clauses), params
+
+
+def _normalize_carnet_search_result(item: dict) -> dict:
+    escuela = _first_text(
+        item,
+        "escuelaUnidadAcademica",
+        "escuela_unidad_academica",
+        "escuela",
+        "unidadAcademica",
+        default="No especificada",
+    )
+    normalized = dict(item)
+    normalized["matricula"] = _first_text(
+        item,
+        "matricula",
+        "matrícula",
+        "matricula_alumno",
+        "numeroCuenta",
+        "numero_cuenta",
+        "studentId",
+        "student_id",
+    )
+    normalized["nombreCompleto"] = _first_text(
+        item,
+        "nombreCompleto",
+        "nombre",
+        "nombre_completo",
+        "estudiante",
+        "fullName",
+        "full_name",
+        "name",
+    )
+    normalized["escuelaUnidadAcademica"] = escuela
+    normalized["grupo"] = _first_text(item, "grupo", "group")
+    normalized["campus"] = _first_text(
+        item,
+        "campus",
+        "sede",
+        "plantel",
+        default=escuela,
+    )
+    return normalized
+
+
+@app.get("/carnet/search")
+def search_carnet_by_name(nombre: str):
+    """Busca carnets por nombre/matricula/datos academicos y devuelve lista."""
+    query = " ".join(nombre.strip().split())
+    print(f"ENDPOINT /carnet/search CALLED with nombre={query}")
+
+    if not query:
+        return []
+
+    terms = [term for term in re.split(r"\s+", query) if term][:5]
+    search_clause, params = _build_search_clause(terms)
+    if not search_clause:
+        return []
+
+    try:
+        results = carnets.query_items(
+            f"""SELECT TOP 20 * FROM c
+                WHERE ({search_clause})
+                  AND NOT STARTSWITH(c.id, 'cita:')
+                  AND NOT IS_DEFINED(c.inicio)
+                  AND NOT IS_DEFINED(c.fin)
+                ORDER BY c._ts DESC""",
+            params=params
+        )
+
+        if not results:
+            return []
+
+        return [_normalize_carnet_search_result(item) for item in results]
+    except CosmosHttpResponseError as e:
+        raise HTTPException(
+            status_code=e.status_code or 500,
+            detail={"code": e.status_code or 500, "message": e.message}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"code": 500, "message": str(e)})
+
+
 @app.get("/carnet/{id}")
 def get_carnet(id: str):
     # Normalizar id: si no empieza con carnet:, agregar prefijo
@@ -220,8 +366,8 @@ def get_carnet(id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail={"code": 500, "message": str(e)})
 
-@app.get("/carnet/search")
-def search_carnet_by_name(nombre: str):
+@app.get("/_legacy/carnet/search-disabled")
+def legacy_search_carnet_by_name_disabled(nombre: str):
     """Busca carnets por nombre (búsqueda parcial case-insensitive)"""
     print(f"ENDPOINT /carnet/search CALLED with nombre={nombre}")
     try:
