@@ -111,6 +111,8 @@ class CarnetModel(BaseModel):
     sexo: Optional[str] = ""
     categoria: Optional[str] = ""
     programa: Optional[str] = ""
+    escuelaUnidadAcademica: Optional[str] = "No especificada"
+    grupo: Optional[str] = ""
     tipoSangre: Optional[str] = ""
     enfermedadCronica: Optional[str] = ""
     unidadMedica: Optional[str] = ""
