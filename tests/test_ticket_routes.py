@@ -6,6 +6,7 @@ import types
 from pathlib import Path
 
 from fastapi import HTTPException
+from jose import jwt
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -319,6 +320,50 @@ class TicketRouteTests(unittest.TestCase):
         self.assertEqual(principal.matricula, "15662")
         self.assertEqual(principal.nombre, "Alumno Prueba")
         self.assertEqual(principal.email, "alumno@example.edu")
+
+    def test_student_secret_token_with_role_claim_is_accepted(self):
+        os.environ["STUDENT_JWT_SECRET"] = "student-test-secret"
+        token = jwt.encode(
+            {
+                "sub": "carnet-digital",
+                "role": "alumno",
+                "matricula": "15662",
+                "nombre": "Alumno Prueba",
+                "email": "alumno@example.edu",
+                "campus": Campus.CRES_LLANO_LARGO.value,
+            },
+            "student-test-secret",
+            algorithm="HS256",
+        )
+
+        principal = asyncio.run(ticket_routes.get_ticket_principal(token=token))
+
+        self.assertTrue(principal.is_student)
+        self.assertEqual(principal.username, "student:15662")
+        self.assertEqual(principal.rol, "alumno")
+        self.assertEqual(principal.matricula, "15662")
+        self.assertEqual(principal.nombre, "Alumno Prueba")
+        self.assertEqual(principal.email, "alumno@example.edu")
+
+    def test_student_secret_token_with_matricula_only_is_accepted(self):
+        os.environ["STUDENT_JWT_SECRET"] = "student-test-secret"
+        token = jwt.encode(
+            {
+                "matricula": "15662",
+                "nombre": "Alumno Prueba",
+                "email": "alumno@example.edu",
+            },
+            "student-test-secret",
+            algorithm="HS256",
+        )
+
+        principal = asyncio.run(ticket_routes.get_ticket_principal(token=token))
+
+        self.assertTrue(principal.is_student)
+        self.assertEqual(principal.username, "student:15662")
+        self.assertEqual(principal.rol, "alumno")
+        self.assertEqual(principal.campus, Campus.CRES_LLANO_LARGO.value)
+        self.assertEqual(principal.matricula, "15662")
 
     def test_student_only_sees_tickets_for_own_matricula(self):
         own_ticket = self.create_ticket()

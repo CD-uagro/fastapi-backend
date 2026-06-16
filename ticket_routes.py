@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import logging
+import os
 from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -30,6 +32,8 @@ from ticket_repository import (
 
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
+
+logger = logging.getLogger(__name__)
 
 _repository = None
 
@@ -72,6 +76,26 @@ def _payload_claim(payload: Dict[str, Any], *names: str) -> Optional[str]:
     return None
 
 
+def _student_jwt_secret() -> Optional[str]:
+    return os.environ.get("STUDENT_JWT_SECRET")
+
+
+def _student_jwt_algorithm() -> str:
+    return os.environ.get("STUDENT_JWT_ALGORITHM", ALGORITHM)
+
+
+def _safe_claim_keys(payload: Dict[str, Any]) -> List[str]:
+    return sorted(str(key) for key in payload.keys())
+
+
+def _log_jwt_failure(source: str, exc: Exception) -> None:
+    logger.warning("Ticket JWT %s validation failed: %s", source, exc.__class__.__name__)
+
+
+def _log_jwt_success(source: str, payload: Dict[str, Any]) -> None:
+    logger.info("Ticket JWT %s validation ok: claims=%s", source, _safe_claim_keys(payload))
+
+
 def _validate_campus(campus: Optional[str]) -> str:
     value = campus or DEFAULT_STUDENT_CAMPUS
     try:
@@ -94,7 +118,7 @@ def _as_principal(user: Union[TokenData, TicketPrincipal]) -> TicketPrincipal:
     return _principal_from_token_data(user)
 
 
-async def get_ticket_principal(token: str = Depends(oauth2_scheme)) -> TicketPrincipal:
+async def _legacy_get_ticket_principal(token: str = Depends(oauth2_scheme)) -> TicketPrincipal:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
@@ -129,6 +153,73 @@ async def get_ticket_principal(token: str = Depends(oauth2_scheme)) -> TicketPri
         rol=staff_role.value,
         campus=campus.value,
     )
+
+
+def _student_principal_from_payload(
+    payload: Dict[str, Any],
+    *,
+    require_role: bool,
+) -> TicketPrincipal:
+    role = _payload_claim(payload, "rol", "role")
+    if role and role != STUDENT_ROLE:
+        raise _authentication_error()
+    if require_role and role != STUDENT_ROLE:
+        raise _authentication_error()
+
+    matricula = _payload_claim(payload, "matricula")
+    if not matricula:
+        raise _authentication_error("Token de alumno sin matricula")
+    return TicketPrincipal(
+        username=f"student:{matricula}",
+        rol=STUDENT_ROLE,
+        campus=_validate_campus(_payload_claim(payload, "campus")),
+        matricula=matricula,
+        nombre=_payload_claim(payload, "nombre", "name"),
+        email=_payload_claim(payload, "email", "correo"),
+        is_student=True,
+    )
+
+
+def _staff_principal_from_payload(payload: Dict[str, Any]) -> TicketPrincipal:
+    role = _payload_claim(payload, "rol", "role")
+    username = _payload_claim(payload, "sub")
+    campus_claim = _payload_claim(payload, "campus")
+    if not username or not role or not campus_claim:
+        raise _authentication_error()
+    try:
+        staff_role = UserRole(role)
+        campus = Campus(_validate_campus(campus_claim))
+    except ValueError:
+        raise _authentication_error()
+    return TicketPrincipal(
+        username=username,
+        rol=staff_role.value,
+        campus=campus.value,
+    )
+
+
+async def get_ticket_principal(token: str = Depends(oauth2_scheme)) -> TicketPrincipal:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        _log_jwt_success("internal", payload)
+        if _payload_claim(payload, "rol", "role") == STUDENT_ROLE:
+            return _student_principal_from_payload(payload, require_role=True)
+        return _staff_principal_from_payload(payload)
+    except JWTError as exc:
+        _log_jwt_failure("internal", exc)
+
+    student_secret = _student_jwt_secret()
+    if not student_secret:
+        logger.warning("Ticket JWT student validation skipped: STUDENT_JWT_SECRET missing")
+        raise _authentication_error()
+
+    try:
+        payload = jwt.decode(token, student_secret, algorithms=[_student_jwt_algorithm()])
+        _log_jwt_success("student", payload)
+        return _student_principal_from_payload(payload, require_role=False)
+    except JWTError as exc:
+        _log_jwt_failure("student", exc)
+        raise _authentication_error()
 
 
 def _campus_value(user: Union[TokenData, TicketPrincipal]) -> str:
