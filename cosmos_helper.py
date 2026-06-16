@@ -8,7 +8,15 @@ load_dotenv()
 
 COSMOS_URL = os.environ["COSMOS_URL"]
 COSMOS_KEY = os.environ["COSMOS_KEY"]
-DB_NAME = os.environ["COSMOS_DB"]
+
+
+def get_cosmos_db_name():
+    return os.environ.get("COSMOS_DB") or os.environ.get("COSMOS_DATABASE")
+
+
+DB_NAME = get_cosmos_db_name()
+if not DB_NAME:
+    raise KeyError("COSMOS_DB")
 
 class CosmosDBHelper:
     def __init__(self, container_name, partition_key):

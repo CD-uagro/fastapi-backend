@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
-from cosmos_helper import CosmosDBHelper
+from cosmos_helper import CosmosDBHelper, get_cosmos_db_name
 from azure.cosmos.exceptions import CosmosHttpResponseError
 from dotenv import load_dotenv
 from typing import Optional
@@ -590,7 +590,7 @@ def diagnose_citas():
         from cosmos_helper import get_citas_container, get_citas_pk_path
         
         # Obtener configuración
-        db_name = os.environ.get("COSMOS_DB", "NOT_SET")
+        db_name = get_cosmos_db_name() or "NOT_SET"
         container_name = os.environ.get("COSMOS_CONTAINER_CITAS", "NOT_SET")
         pk_path = os.environ.get("COSMOS_PK_CITAS", "NOT_SET")
         
@@ -614,7 +614,7 @@ def diagnose_citas():
     except Exception as e:
         return {
             "error": str(e),
-            "db": os.environ.get("COSMOS_DB", "NOT_SET"),
+            "db": get_cosmos_db_name() or "NOT_SET",
             "container": os.environ.get("COSMOS_CONTAINER_CITAS", "NOT_SET"),
             "pk_path": os.environ.get("COSMOS_PK_CITAS", "NOT_SET"),
             "can_read": False
@@ -854,7 +854,9 @@ def ensure_auth_containers():
     try:
         cosmos_url = os.environ["COSMOS_URL"]
         cosmos_key = os.environ["COSMOS_KEY"]
-        db_name = os.environ["COSMOS_DB"]
+        db_name = get_cosmos_db_name()
+        if not db_name:
+            raise KeyError("COSMOS_DB")
         
         client = CosmosClient(cosmos_url, credential=cosmos_key)
         database = client.get_database_client(db_name)

@@ -16,14 +16,14 @@ def create_auth_containers():
     # Obtener credenciales (usar las mismas variables que cosmos_helper.py)
     endpoint = os.getenv("COSMOS_URL")
     key = os.getenv("COSMOS_KEY")
-    database_name = os.getenv("COSMOS_DB")
+    database_name = os.getenv("COSMOS_DB") or os.getenv("COSMOS_DATABASE")
     
     if not all([endpoint, key, database_name]):
         print("❌ ERROR: Faltan variables de entorno necesarias")
         print("Asegúrate de tener en el .env:")
         print("  - COSMOS_URL")
         print("  - COSMOS_KEY")
-        print("  - COSMOS_DB")
+        print("  - COSMOS_DB o COSMOS_DATABASE")
         return False
     
     print("=" * 70)
