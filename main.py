@@ -852,7 +852,7 @@ def ensure_auth_containers():
     from azure.cosmos import CosmosClient, PartitionKey
     
     try:
-        cosmos_url = os.environ["COSMOS_URL"]
+        cosmos_url = os.environ.get("COSMOS_URL") or os.environ["COSMOS_ENDPOINT"]
         cosmos_key = os.environ["COSMOS_KEY"]
         db_name = get_cosmos_db_name()
         if not db_name:

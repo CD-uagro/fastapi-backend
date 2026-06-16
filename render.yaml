@@ -3,20 +3,33 @@ services:
     name: fastapi-backend-o7ks
     env: python
     buildCommand: pip install -r temp_backend/requirements.txt
-    startCommand: cd temp_backend && python main.py
+    startCommand: cd temp_backend && gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT
     healthCheckPath: /health
     envVars:
-      # Cosmos DB Configuration for CITAS system
+      # Cosmos DB Configuration
       - key: COSMOS_DB
         value: "SASU"
+      - key: COSMOS_CONTAINER_CARNETS
+        value: "carnets_id"
+      - key: COSMOS_CONTAINER_NOTAS
+        value: "notas"
       - key: COSMOS_CONTAINER_CITAS
         value: "citas_id"
       - key: COSMOS_PK_CITAS
         value: "/id"
+      - key: COSMOS_CONTAINER_TICKETS
+        value: "tickets"
+      - key: COSMOS_CONTAINER_TICKET_MESSAGES
+        value: "ticket_messages"
       # Cosmos DB Secrets (configured in Render dashboard)
+      - key: COSMOS_URL
+        fromSecret: COSMOS_ENDPOINT
       - key: COSMOS_ENDPOINT
         fromSecret: COSMOS_ENDPOINT
       - key: COSMOS_KEY
         fromSecret: COSMOS_KEY
-    # Optional: keep existing configuration for carnets/notas
-    # Add other environment variables as needed
+      # Authentication secrets (configured in Render dashboard)
+      - key: JWT_SECRET_KEY
+        fromSecret: JWT_SECRET_KEY
+    # Optional: keep existing configuration for promotions, vaccination, users, audit, and Google Calendar
+    # Add other environment variables as needed in the Render dashboard

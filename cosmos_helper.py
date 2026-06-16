@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-COSMOS_URL = os.environ["COSMOS_URL"]
+COSMOS_URL = os.environ.get("COSMOS_URL") or os.environ["COSMOS_ENDPOINT"]
 COSMOS_KEY = os.environ["COSMOS_KEY"]
 
 
