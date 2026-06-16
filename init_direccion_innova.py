@@ -2,12 +2,22 @@
 Script para crear el primer usuario admin: DireccionInnovaSalud
 Usa el endpoint especial /auth/init-admin que no requiere autenticación previa
 """
+import os
 import requests
 import json
 
 # Configuración
-API_BASE_URL = "https://fastapi-backend-o7ks.onrender.com"
+API_BASE_URL = os.environ.get(
+    "INIT_ADMIN_API_BASE_URL",
+    "https://fastapi-backend-o7ks.onrender.com",
+)
 # Para desarrollo local: API_BASE_URL = "http://localhost:8000"
+ADMIN_PASSWORD = os.environ.get("INIT_ADMIN_PASSWORD")
+
+if not ADMIN_PASSWORD:
+    raise SystemExit(
+        "Define INIT_ADMIN_PASSWORD antes de ejecutar este script."
+    )
 
 # Datos del usuario admin
 admin_data = {
@@ -15,9 +25,9 @@ admin_data = {
     "email": "innovasalud@uagro.mx",
     "nombre_completo": "Direccion Innova Salud",  # Sin acento
     "rol": "admin",
-    "campus": "llano-largo",
+    "campus": "cres-llano-largo",  # FIX: Formato correcto
     "departamento": "Direccion",  # Sin acento
-    "password": "Admin2025"
+    "password": ADMIN_PASSWORD
 }
 
 print("=" * 70)
@@ -80,7 +90,7 @@ try:
         print(f"🌐 URL del panel:  {API_BASE_URL}/admin")
         print()
         print(f"   Usuario:        {admin_data['username']}")
-        print(f"   Contraseña:     {admin_data['password']}")
+        print("   Contraseña:     definida en INIT_ADMIN_PASSWORD")
         print(f"   Campus:         {admin_data['campus']}")
         print()
         print("=" * 70)

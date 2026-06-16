@@ -2,7 +2,7 @@
 import sys
 import subprocess
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.stderr.write("=" * 80 + "\n")
 sys.stderr.write("FASTAPI MAIN.PY LOADING - Checking for /carnet/search endpoint\n")
@@ -101,6 +101,31 @@ class NotaModel(BaseModel):
     
     class Config:
         populate_by_name = True
+
+
+def _utc_iso_z(value: Optional[str] = None) -> str:
+    def now_utc() -> str:
+        return (
+            datetime.now(timezone.utc)
+            .isoformat(timespec="milliseconds")
+            .replace("+00:00", "Z")
+        )
+
+    if not value or not str(value).strip():
+        return now_utc()
+
+    text = str(value).strip()
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return now_utc()
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    else:
+        parsed = parsed.astimezone(timezone.utc)
+
+    return parsed.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 # Modelo para los carnets (campos opcionales con alias)
 class CarnetModel(BaseModel):
@@ -420,8 +445,8 @@ def create_nota(nota: NotaModel = Body(...)):
         nota_dict = nota.dict()
         if not nota_dict.get("id"):
             nota_dict["id"] = f"nota:{uuid.uuid4()}"
-        if not nota_dict.get("createdAt"):
-            nota_dict["createdAt"] = datetime.utcnow().isoformat() + "Z"
+        fecha_servidor = nota_dict.get("createdAt")
+        nota_dict["createdAt"] = _utc_iso_z(fecha_servidor)
         
         # Cosmos: PK = /matricula
         res = notas.upsert_item(nota_dict, partition_value=nota.matricula)
@@ -738,9 +763,9 @@ def get_promociones_salud():
 def validate_supervisor_key(key_data: dict = Body(...)):
     """Validar clave de supervisor"""
     supervisor_key = key_data.get("key", "")
-    valid_key = "UAGROcres2025"
+    valid_key = os.environ.get("SUPERVISOR_KEY", "")
     
-    if supervisor_key == valid_key:
+    if valid_key and supervisor_key == valid_key:
         return {"valid": True, "message": "Clave válida"}
     else:
         return {"valid": False, "message": "Clave incorrecta"}
