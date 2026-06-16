@@ -4,6 +4,15 @@ Modulo backend MVP para tickets institucionales SASU 2.6.0.
 
 ## Contenedores Cosmos
 
+Variables requeridas:
+
+- `COSMOS_URL`
+- `COSMOS_KEY`
+- `COSMOS_DB=SASU` recomendado
+- `COSMOS_DATABASE` se acepta como respaldo si `COSMOS_DB` no existe
+- `COSMOS_CONTAINER_TICKETS=tickets`
+- `COSMOS_CONTAINER_TICKET_MESSAGES=ticket_messages`
+
 - `tickets`, configurable con `COSMOS_CONTAINER_TICKETS`.
 - `ticket_messages`, configurable con `COSMOS_CONTAINER_TICKET_MESSAGES`.
 
@@ -11,6 +20,14 @@ Partition keys recomendadas:
 
 - `tickets`: `/campus`
 - `ticket_messages`: `/ticketId`
+
+Validacion de infraestructura:
+
+- Smoke test real contra Azure Cosmos ejecutado en SASU 2.6.0.
+- Base validada: `SASU`.
+- Contenedor `tickets` creado/verificado con partition key `/campus`.
+- Contenedor `ticket_messages` creado/verificado con partition key `/ticketId`.
+- Flujo validado: crear ticket, agregar mensaje, leer ticket, leer mensajes, asignar, cambiar estados, registrar cita virtual, registrar URL externa y cerrar.
 
 ## Endpoints
 
@@ -77,3 +94,4 @@ Registra URL externa `https://` para Meet, Teams u otro servicio institucional.
 - El acceso queda limitado al mismo campus salvo rol `admin`.
 - No se modifica autenticacion, login, notas clinicas, SQLite, updater ni actividad reciente.
 - No se almacenan secretos ni credenciales en este modulo.
+- No usar este modulo para urgencias o emergencias medicas. En esos casos se debe acudir a servicios de emergencia o a la unidad correspondiente.
