@@ -102,6 +102,12 @@ def _get_ticket_or_404(repository: CosmosTicketRepository, ticket_id: str) -> Di
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket no encontrado")
 
 
+def _payload_dict(payload, **kwargs) -> Dict[str, Any]:
+    if hasattr(payload, "model_dump"):
+        return payload.model_dump(**kwargs)
+    return payload.dict(**kwargs)
+
+
 @router.post("", response_model=TicketResponse, status_code=status.HTTP_201_CREATED)
 async def create_ticket(
     payload: TicketCreate,
@@ -112,7 +118,7 @@ async def create_ticket(
     _ensure_same_campus_or_admin(current_user, payload.campus)
 
     now = utc_now_iso()
-    ticket = payload.dict()
+    ticket = _payload_dict(payload)
     ticket.update(
         {
             "id": generate_ticket_id(),
@@ -211,7 +217,7 @@ async def assign_ticket(
     ticket = _get_ticket_or_404(repository, ticket_id)
     _ensure_same_campus_or_admin(current_user, ticket.get("campus", ""))
 
-    updates = payload.dict(exclude_unset=True)
+    updates = _payload_dict(payload, exclude_unset=True)
     updates["estado"] = TicketEstado.ASIGNADO.value
     updates["updatedAtUtc"] = utc_now_iso()
     return repository.update_ticket(ticket_id, updates)
