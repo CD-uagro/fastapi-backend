@@ -25,11 +25,14 @@ def normalize_utc_iso(value: Optional[str]) -> Optional[str]:
 
 class TicketEstado(str, Enum):
     ABIERTO = "abierto"
+    EN_REVISION = "en_revision"
+    EN_PROCESO = "en_proceso"
     ASIGNADO = "asignado"
     EN_ATENCION = "en_atencion"
     PENDIENTE_PACIENTE = "pendiente_paciente"
     RESUELTO = "resuelto"
     CERRADO = "cerrado"
+    CANCELADO = "cancelado"
 
 
 class TicketCategoria(str, Enum):
@@ -63,6 +66,11 @@ class TicketSenderRole(str, Enum):
     VACUNACION = "vacunacion"
     PROMOCION = "promocion"
     ADMINISTRADOR = "administrador"
+
+
+class TicketFollowupVisibility(str, Enum):
+    INTERNAL = "internal"
+    STUDENT = "student"
 
 
 class _TicketBaseModel(BaseModel):
@@ -128,6 +136,11 @@ class TicketStatusUpdate(_TicketBaseModel):
     estado: TicketEstado
 
 
+class TicketFollowupCreate(_TicketBaseModel):
+    message: str = Field(..., min_length=1, max_length=4000)
+    visibility: TicketFollowupVisibility = TicketFollowupVisibility.INTERNAL
+
+
 class TicketAppointmentUpdate(_TicketBaseModel):
     appointmentMode: AppointmentMode
     appointmentAtUtc: str
@@ -175,6 +188,8 @@ class TicketResponse(_TicketBaseModel):
     createdByRole: Optional[str] = None
     lastMessageAtUtc: Optional[str] = None
     lastMessagePreview: Optional[str] = None
+    lastFollowupAtUtc: Optional[str] = None
+    statusHistory: Optional[List[Dict[str, Any]]] = None
     deleted: bool = False
     schemaVersion: int = 1
 
@@ -193,6 +208,18 @@ class TicketMessageResponse(_TicketBaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+class TicketFollowupResponse(_TicketBaseModel):
+    id: str
+    ticket_id: str
+    author: str
+    role: str
+    message: str
+    visibility: TicketFollowupVisibility
+    created_at: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
 class TicketDetailResponse(_TicketBaseModel):
     ticket: TicketResponse
     messages: List[TicketMessageResponse] = []
+    followups: List[TicketFollowupResponse] = []

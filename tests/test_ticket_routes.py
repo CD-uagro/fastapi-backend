@@ -78,6 +78,38 @@ class FakeTicketRepository:
             if ticket["campus"] == campus and ticket.get("matricula") == matricula
         ]
 
+    def list_tickets(self, filters=None):
+        filters = filters or {}
+        values = list(self.tickets.values())
+        if filters.get("status"):
+            values = [ticket for ticket in values if ticket.get("estado") == filters["status"]]
+        if filters.get("category"):
+            values = [ticket for ticket in values if ticket.get("categoria") == filters["category"]]
+        if filters.get("priority"):
+            values = [ticket for ticket in values if ticket.get("prioridad") == filters["priority"]]
+        if filters.get("campus"):
+            values = [ticket for ticket in values if ticket.get("campus") == filters["campus"]]
+        if filters.get("unidad_academica"):
+            values = [
+                ticket
+                for ticket in values
+                if ticket.get("unidad_academica") == filters["unidad_academica"]
+                or ticket.get("unidadAcademica") == filters["unidad_academica"]
+            ]
+        if filters.get("preparatoria"):
+            values = [ticket for ticket in values if ticket.get("preparatoria") == filters["preparatoria"]]
+        if filters.get("student_id"):
+            values = [
+                ticket
+                for ticket in values
+                if ticket.get("student_id") == filters["student_id"]
+                or ticket.get("patientId") == filters["student_id"]
+                or ticket.get("matricula") == filters["student_id"]
+            ]
+        if filters.get("matricula"):
+            values = [ticket for ticket in values if ticket.get("matricula") == filters["matricula"]]
+        return values
+
     def update_ticket(self, ticket_id, updates):
         ticket = self.get_ticket(ticket_id)
         ticket.update(updates)
@@ -100,6 +132,21 @@ class FakeTicketRepository:
     def list_messages(self, ticket_id):
         self.get_ticket(ticket_id)
         return self.messages.get(ticket_id, [])
+
+    def add_followup(self, ticket_id, followup):
+        self.get_ticket(ticket_id)
+        created = dict(followup)
+        self.messages.setdefault(ticket_id, []).append(created)
+        self.update_ticket(ticket_id, {"lastFollowupAtUtc": created.get("createdAtUtc")})
+        return created
+
+    def list_followups(self, ticket_id):
+        self.get_ticket(ticket_id)
+        return [
+            message
+            for message in self.messages.get(ticket_id, [])
+            if message.get("metadata", {}).get("messageType") == "followup" or message.get("visibility")
+        ]
 
 
 def sample_ticket_payload(campus="cres-llano-largo"):
@@ -234,19 +281,19 @@ class TicketRouteTests(unittest.TestCase):
         self.assertEqual(response["estado"], "cerrado")
         self.assertIsNotNone(response["closedAtUtc"])
 
-    def test_cannot_access_other_campus_ticket(self):
+    def test_internal_user_can_access_other_campus_ticket(self):
         ticket = self.create_ticket()
         self.repo.tickets[ticket["id"]]["campus"] = "clinica-acapulco"
 
-        with self.assertRaises(HTTPException) as context:
-            asyncio.run(
-                ticket_routes.get_ticket_detail(
-                    ticket["id"],
-                    current_user=self.user,
-                    repository=self.repo,
-                )
+        body = asyncio.run(
+            ticket_routes.get_ticket_detail(
+                ticket["id"],
+                current_user=self.user,
+                repository=self.repo,
             )
-        self.assertEqual(context.exception.status_code, 403)
+        )
+
+        self.assertEqual(body["ticket"]["id"], ticket["id"])
 
     def test_read_only_user_cannot_reply(self):
         ticket = self.create_ticket()
@@ -299,6 +346,110 @@ class TicketRouteTests(unittest.TestCase):
             )
         )
         self.assertEqual({ticket["id"] for ticket in tickets}, {own_ticket["id"], assigned_ticket["id"]})
+
+    def test_admin_list_tickets_filters_without_campus_restriction(self):
+        own_ticket = self.create_ticket()
+        self.repo.tickets[own_ticket["id"]]["campus"] = "clinica-acapulco"
+        other_payload = sample_ticket_payload()
+        other_payload["matricula"] = "99999"
+        other_ticket = asyncio.run(
+            ticket_routes.create_ticket(
+                TicketCreate(**other_payload),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        tickets = asyncio.run(
+            ticket_routes.list_tickets(
+                status_filter="abierto",
+                category=None,
+                priority=None,
+                campus="clinica-acapulco",
+                unidad_academica=None,
+                preparatoria=None,
+                student_id=None,
+                matricula=None,
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        self.assertEqual([ticket["id"] for ticket in tickets], [own_ticket["id"]])
+        self.assertNotIn(other_ticket["id"], [ticket["id"] for ticket in tickets])
+
+    def test_student_cannot_use_admin_list_tickets(self):
+        with self.assertRaises(HTTPException) as context:
+            asyncio.run(
+                ticket_routes.list_tickets(
+                    status_filter=None,
+                    category=None,
+                    priority=None,
+                    campus=None,
+                    unidad_academica=None,
+                    preparatoria=None,
+                    student_id=None,
+                    matricula=None,
+                    current_user=self.student_user("15662"),
+                    repository=self.repo,
+                )
+            )
+
+        self.assertEqual(context.exception.status_code, 403)
+
+    def test_admin_status_update_records_history(self):
+        ticket = self.create_ticket()
+
+        response = asyncio.run(
+            ticket_routes.update_ticket_status(
+                ticket["id"],
+                TicketStatusUpdate(estado="en_revision"),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        self.assertEqual(response["estado"], "en_revision")
+        self.assertEqual(response["statusHistory"][0]["previousStatus"], "abierto")
+        self.assertEqual(response["statusHistory"][0]["newStatus"], "en_revision")
+        self.assertEqual(response["statusHistory"][0]["changedBy"], self.user.username)
+
+    def test_invalid_admin_status_is_rejected(self):
+        with self.assertRaises(ValueError):
+            TicketStatusUpdate(estado="estado_invalido")
+
+    def test_admin_followup_is_added_to_ticket_history(self):
+        ticket = self.create_ticket()
+
+        followup = asyncio.run(
+            ticket_routes.add_ticket_followup(
+                ticket["id"],
+                ticket_routes.TicketFollowupCreate(
+                    message="Se canaliza para revision interna",
+                    visibility="internal",
+                ),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        self.assertEqual(followup["ticket_id"], ticket["id"])
+        self.assertEqual(followup["author"], self.user.username)
+        self.assertEqual(followup["role"], self.user.rol.value)
+        self.assertEqual(followup["visibility"], "internal")
+
+        detail = asyncio.run(
+            ticket_routes.get_ticket_detail(
+                ticket["id"],
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+        self.assertEqual(len(detail["followups"]), 1)
+
+    def test_empty_followup_is_rejected(self):
+        with self.assertRaises(ValueError):
+            ticket_routes.TicketFollowupCreate(message="", visibility="internal")
 
     def test_student_token_with_role_claim_is_accepted(self):
         token = AuthService.create_access_token(

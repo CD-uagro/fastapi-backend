@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from jose import JWTError, jwt
 
 from auth_models import Campus, TokenData, UserRole, has_permission
@@ -14,6 +14,8 @@ from ticket_models import (
     TicketCreate,
     TicketDetailResponse,
     TicketEstado,
+    TicketFollowupCreate,
+    TicketFollowupResponse,
     TicketMessageCreate,
     TicketMessageResponse,
     TicketResponse,
@@ -270,7 +272,18 @@ def _require_permission(user: Union[TokenData, TicketPrincipal], permission: str
         )
 
 
+def _require_internal_ticket_user(user: Union[TokenData, TicketPrincipal], permission: str) -> None:
+    if _is_student(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Endpoint disponible solo para usuarios internos SASU",
+        )
+    _require_permission(user, permission)
+
+
 def _ensure_same_campus_or_admin(user: Union[TokenData, TicketPrincipal], campus: str) -> None:
+    if not _is_student(user):
+        return
     role = _staff_role(user)
     if role == UserRole.ADMIN:
         return
@@ -333,6 +346,19 @@ def _get_ticket_or_404(repository: CosmosTicketRepository, ticket_id: str) -> Di
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket no encontrado")
 
 
+def _followup_response(followup: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": followup.get("id"),
+        "ticket_id": followup.get("ticket_id") or followup.get("ticketId"),
+        "author": followup.get("author") or followup.get("senderId"),
+        "role": followup.get("role") or followup.get("senderRole"),
+        "message": followup.get("message"),
+        "visibility": followup.get("visibility") or followup.get("metadata", {}).get("visibility") or "internal",
+        "created_at": followup.get("created_at") or followup.get("createdAtUtc"),
+        "metadata": followup.get("metadata"),
+    }
+
+
 def _payload_dict(payload, **kwargs) -> Dict[str, Any]:
     if hasattr(payload, "model_dump"):
         return payload.model_dump(**kwargs)
@@ -384,6 +410,34 @@ async def create_ticket(
     return repository.create_ticket(ticket)
 
 
+@router.get("", response_model=List[TicketResponse])
+async def list_tickets(
+    status_filter: Optional[str] = Query(default=None, alias="status"),
+    category: Optional[str] = None,
+    priority: Optional[str] = None,
+    campus: Optional[str] = None,
+    unidad_academica: Optional[str] = None,
+    preparatoria: Optional[str] = None,
+    student_id: Optional[str] = None,
+    matricula: Optional[str] = None,
+    current_user: TicketPrincipal = Depends(get_ticket_principal),
+    repository: CosmosTicketRepository = Depends(get_ticket_repository),
+):
+    _require_internal_ticket_user(current_user, "tickets:read")
+    return repository.list_tickets(
+        {
+            "status": status_filter,
+            "category": category,
+            "priority": priority,
+            "campus": campus,
+            "unidad_academica": unidad_academica,
+            "preparatoria": preparatoria,
+            "student_id": student_id,
+            "matricula": matricula,
+        }
+    )
+
+
 @router.get("/my", response_model=List[TicketResponse])
 async def get_my_tickets(
     current_user: TicketPrincipal = Depends(get_ticket_principal),
@@ -411,10 +465,12 @@ async def get_ticket_detail(
     current_user: TicketPrincipal = Depends(get_ticket_principal),
     repository: CosmosTicketRepository = Depends(get_ticket_repository),
 ):
+    _require_internal_ticket_user(current_user, "tickets:read")
     ticket = _get_ticket_or_404(repository, ticket_id)
     _ensure_can_read_ticket(current_user, ticket)
     messages = repository.list_messages(ticket_id)
-    return {"ticket": ticket, "messages": messages}
+    followups = [_followup_response(item) for item in repository.list_followups(ticket_id)]
+    return {"ticket": ticket, "messages": messages, "followups": followups}
 
 
 @router.post("/{ticket_id}/messages", response_model=TicketMessageResponse, status_code=status.HTTP_201_CREATED)
@@ -483,12 +539,26 @@ async def update_ticket_status(
     current_user: TicketPrincipal = Depends(get_ticket_principal),
     repository: CosmosTicketRepository = Depends(get_ticket_repository),
 ):
-    _require_permission(current_user, "tickets:update_status")
+    _require_internal_ticket_user(current_user, "tickets:update_status")
     ticket = _get_ticket_or_404(repository, ticket_id)
-    _ensure_same_campus_or_admin(current_user, ticket.get("campus", ""))
 
     now = utc_now_iso()
-    updates = {"estado": payload.estado, "updatedAtUtc": now}
+    previous_status = ticket.get("estado")
+    status_history = list(ticket.get("statusHistory") or [])
+    status_history.append(
+        {
+            "previousStatus": previous_status,
+            "newStatus": payload.estado,
+            "changedBy": _username_value(current_user),
+            "changedByRole": _role_value(current_user),
+            "changedAtUtc": now,
+        }
+    )
+    updates = {
+        "estado": payload.estado,
+        "updatedAtUtc": now,
+        "statusHistory": status_history,
+    }
     if payload.estado == TicketEstado.CERRADO.value:
         updates["closedAtUtc"] = now
         updates["closedBy"] = _username_value(current_user)
@@ -496,6 +566,41 @@ async def update_ticket_status(
         updates["closedAtUtc"] = None
         updates["closedBy"] = None
     return repository.update_ticket(ticket_id, updates)
+
+
+@router.post("/{ticket_id}/followups", response_model=TicketFollowupResponse, status_code=status.HTTP_201_CREATED)
+async def add_ticket_followup(
+    ticket_id: str,
+    payload: TicketFollowupCreate,
+    current_user: TicketPrincipal = Depends(get_ticket_principal),
+    repository: CosmosTicketRepository = Depends(get_ticket_repository),
+):
+    _require_internal_ticket_user(current_user, "tickets:reply")
+    _get_ticket_or_404(repository, ticket_id)
+
+    now = utc_now_iso()
+    followup = {
+        "id": generate_ticket_message_id(),
+        "ticketId": ticket_id,
+        "ticket_id": ticket_id,
+        "senderId": _username_value(current_user),
+        "senderRole": _sender_role_for_user(current_user),
+        "senderName": _as_principal(current_user).nombre or _username_value(current_user),
+        "author": _username_value(current_user),
+        "role": _role_value(current_user),
+        "message": payload.message,
+        "visibility": payload.visibility,
+        "createdAtUtc": now,
+        "created_at": now,
+        "readAtUtc": None,
+        "attachmentUrl": None,
+        "deleted": False,
+        "metadata": {
+            "messageType": "followup",
+            "visibility": payload.visibility,
+        },
+    }
+    return _followup_response(repository.add_followup(ticket_id, followup))
 
 
 @router.patch("/{ticket_id}/appointment", response_model=TicketResponse)

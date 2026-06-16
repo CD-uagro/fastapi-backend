@@ -61,6 +61,43 @@ class CosmosTicketRepository:
             raise TicketNotFoundError(ticket_id)
         return results[0]
 
+    def list_tickets(self, filters: Optional[Dict[str, Optional[str]]] = None) -> List[Dict[str, Any]]:
+        filters = filters or {}
+        clauses = ["(NOT IS_DEFINED(c.deleted) OR c.deleted = false)"]
+        params = []
+
+        simple_fields = {
+            "status": "estado",
+            "category": "categoria",
+            "priority": "prioridad",
+            "campus": "campus",
+            "matricula": "matricula",
+        }
+        for filter_name, field_name in simple_fields.items():
+            value = filters.get(filter_name)
+            if value:
+                param_name = f"@{filter_name}"
+                clauses.append(f"c.{field_name} = {param_name}")
+                params.append({"name": param_name, "value": value})
+
+        unidad_academica = filters.get("unidad_academica")
+        if unidad_academica:
+            clauses.append("(c.unidad_academica = @unidad_academica OR c.unidadAcademica = @unidad_academica)")
+            params.append({"name": "@unidad_academica", "value": unidad_academica})
+
+        preparatoria = filters.get("preparatoria")
+        if preparatoria:
+            clauses.append("c.preparatoria = @preparatoria")
+            params.append({"name": "@preparatoria", "value": preparatoria})
+
+        student_id = filters.get("student_id")
+        if student_id:
+            clauses.append("(c.student_id = @student_id OR c.patientId = @student_id OR c.matricula = @student_id)")
+            params.append({"name": "@student_id", "value": student_id})
+
+        query = f"SELECT * FROM c WHERE {' AND '.join(clauses)} ORDER BY c.updatedAtUtc DESC"
+        return self.tickets.query_items(query, params)
+
     def list_my_tickets(self, username: str, campus: str, include_campus_queue: bool = False) -> List[Dict[str, Any]]:
         if include_campus_queue:
             query = (
@@ -127,6 +164,35 @@ class CosmosTicketRepository:
         query = (
             "SELECT * FROM c WHERE c.ticketId = @ticketId "
             "AND (NOT IS_DEFINED(c.deleted) OR c.deleted = false) "
+            "ORDER BY c.createdAtUtc ASC"
+        )
+        params = [{"name": "@ticketId", "value": ticket_id}]
+        return self.messages.query_items(query, params)
+
+    def add_followup(self, ticket_id: str, followup: Dict[str, Any]) -> Dict[str, Any]:
+        self.get_ticket(ticket_id)
+        followup.setdefault("id", generate_ticket_message_id())
+        followup["ticketId"] = ticket_id
+        followup["ticket_id"] = ticket_id
+        followup.setdefault("deleted", False)
+        try:
+            created = self.messages.create_item(followup)
+            self.update_ticket(
+                ticket_id,
+                {
+                    "lastFollowupAtUtc": created.get("createdAtUtc") or created.get("created_at"),
+                },
+            )
+            return created
+        except CosmosHttpResponseError as exc:
+            raise TicketRepositoryError(str(exc))
+
+    def list_followups(self, ticket_id: str) -> List[Dict[str, Any]]:
+        self.get_ticket(ticket_id)
+        query = (
+            "SELECT * FROM c WHERE c.ticketId = @ticketId "
+            "AND (NOT IS_DEFINED(c.deleted) OR c.deleted = false) "
+            "AND (c.metadata.messageType = 'followup' OR IS_DEFINED(c.visibility)) "
             "ORDER BY c.createdAtUtc ASC"
         )
         params = [{"name": "@ticketId", "value": ticket_id}]
