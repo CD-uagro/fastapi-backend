@@ -239,53 +239,70 @@ ROLE_PERMISSIONS = {
         "citas:create", "citas:read", "citas:update", "citas:delete",
         "promociones:create", "promociones:read",
         "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply", "tickets:assign",
+        "tickets:update_status", "tickets:manage",
         "audit:read", "reports:read"
     ],
     UserRole.MEDICO: [
         "carnets:create", "carnets:read", "carnets:update",
         "notas:create", "notas:read", "notas:update",
         "citas:create", "citas:read", "citas:update",
-        "vaccination:create", "vaccination:read", "vaccination:update"
+        "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply",
+        "tickets:assign", "tickets:update_status"
     ],
     UserRole.NUTRICION: [
         "carnets:create", "carnets:read", "carnets:update",
         "notas:create", "notas:read", "notas:update",
         "citas:create", "citas:read", "citas:update",
-        "vaccination:create", "vaccination:read", "vaccination:update"
+        "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply",
+        "tickets:assign", "tickets:update_status"
     ],
     UserRole.PSICOLOGIA: [
         "carnets:create", "carnets:read", "carnets:update",
         "notas:create", "notas:read", "notas:update",
         "citas:create", "citas:read", "citas:update",
-        "vaccination:create", "vaccination:read", "vaccination:update"
+        "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply",
+        "tickets:assign", "tickets:update_status"
     ],
     UserRole.ODONTOLOGIA: [
         "carnets:create", "carnets:read", "carnets:update",
         "notas:create", "notas:read", "notas:update",
         "citas:create", "citas:read", "citas:update",
-        "vaccination:create", "vaccination:read", "vaccination:update"
+        "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply",
+        "tickets:assign", "tickets:update_status"
     ],
     UserRole.ENFERMERIA: [
         "carnets:create", "carnets:read", "carnets:update",
         "notas:create", "notas:read", "notas:update",
         "citas:create", "citas:read", "citas:update",
-        "vaccination:create", "vaccination:read", "vaccination:update"
+        "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply",
+        "tickets:assign", "tickets:update_status"
     ],
     UserRole.RECEPCION: [
         "carnets:create", "carnets:read", "carnets:update",
         "notas:create", "notas:read", "notas:update",
         "citas:create", "citas:read", "citas:update",
-        "vaccination:create", "vaccination:read", "vaccination:update"
+        "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply",
+        "tickets:assign", "tickets:update_status"
     ],
     UserRole.SERVICIOS_ESTUDIANTILES: [
         "carnets:create", "carnets:read", "carnets:update",
         "notas:create", "notas:read", "notas:update",
         "citas:create", "citas:read", "citas:update",
         "promociones:create", "promociones:read",
-        "vaccination:create", "vaccination:read", "vaccination:update"
+        "vaccination:create", "vaccination:read", "vaccination:update",
+        "tickets:create", "tickets:read", "tickets:reply",
+        "tickets:assign", "tickets:update_status"
     ],
     UserRole.LECTURA: [
         "carnets:read",
+        "tickets:read",
         "reports:read"
     ]
 }
