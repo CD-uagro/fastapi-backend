@@ -82,6 +82,19 @@ class CosmosTicketRepository:
             ]
         return self.tickets.query_items(query, params)
 
+    def list_student_tickets(self, matricula: str, campus: str) -> List[Dict[str, Any]]:
+        query = (
+            "SELECT * FROM c WHERE c.campus = @campus "
+            "AND c.matricula = @matricula "
+            "AND (NOT IS_DEFINED(c.deleted) OR c.deleted = false) "
+            "ORDER BY c.updatedAtUtc DESC"
+        )
+        params = [
+            {"name": "@campus", "value": campus},
+            {"name": "@matricula", "value": matricula},
+        ]
+        return self.tickets.query_items(query, params)
+
     def update_ticket(self, ticket_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         ticket = self.get_ticket(ticket_id)
         ticket.update(updates)
