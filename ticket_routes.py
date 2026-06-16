@@ -359,6 +359,26 @@ def _followup_response(followup: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _message_visibility(message: Dict[str, Any]) -> Optional[str]:
+    metadata = message.get("metadata") or {}
+    return message.get("visibility") or metadata.get("visibility")
+
+
+def _is_student_visible_message(message: Dict[str, Any]) -> bool:
+    if message.get("senderRole") == TicketSenderRole.ALUMNO.value:
+        return True
+    return _message_visibility(message) == "student"
+
+
+def _filter_messages_for_user(
+    user: Union[TokenData, TicketPrincipal],
+    messages: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    if not _is_student(user):
+        return messages
+    return [message for message in messages if _is_student_visible_message(message)]
+
+
 def _payload_dict(payload, **kwargs) -> Dict[str, Any]:
     if hasattr(payload, "model_dump"):
         return payload.model_dump(**kwargs)
@@ -512,7 +532,7 @@ async def get_ticket_messages(
 ):
     ticket = _get_ticket_or_404(repository, ticket_id)
     _ensure_can_read_ticket(current_user, ticket)
-    return repository.list_messages(ticket_id)
+    return _filter_messages_for_user(current_user, repository.list_messages(ticket_id))
 
 
 @router.patch("/{ticket_id}/assign", response_model=TicketResponse)

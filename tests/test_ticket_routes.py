@@ -447,6 +447,119 @@ class TicketRouteTests(unittest.TestCase):
         )
         self.assertEqual(len(detail["followups"]), 1)
 
+    def test_student_messages_exclude_internal_followups(self):
+        ticket = self.create_ticket()
+        student = self.student_user("15662")
+
+        student_message = asyncio.run(
+            ticket_routes.add_ticket_message(
+                ticket["id"],
+                TicketMessageCreate(message="Mensaje del alumno"),
+                current_user=student,
+                repository=self.repo,
+            )
+        )
+        internal_followup = asyncio.run(
+            ticket_routes.add_ticket_followup(
+                ticket["id"],
+                ticket_routes.TicketFollowupCreate(
+                    message="Nota solo para operadores",
+                    visibility="internal",
+                ),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+        student_followup = asyncio.run(
+            ticket_routes.add_ticket_followup(
+                ticket["id"],
+                ticket_routes.TicketFollowupCreate(
+                    message="Respuesta visible para alumno",
+                    visibility="student",
+                ),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        self.assertEqual(student_message["senderRole"], "alumno")
+        self.assertEqual(internal_followup["visibility"], "internal")
+        self.assertEqual(student_followup["visibility"], "student")
+
+        messages = asyncio.run(
+            ticket_routes.get_ticket_messages(
+                ticket["id"],
+                current_user=student,
+                repository=self.repo,
+            )
+        )
+
+        self.assertEqual(
+            [message["message"] for message in messages],
+            ["Mensaje del alumno", "Respuesta visible para alumno"],
+        )
+
+    def test_internal_user_messages_include_all_followups(self):
+        ticket = self.create_ticket()
+
+        asyncio.run(
+            ticket_routes.add_ticket_followup(
+                ticket["id"],
+                ticket_routes.TicketFollowupCreate(
+                    message="Nota interna",
+                    visibility="internal",
+                ),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+        asyncio.run(
+            ticket_routes.add_ticket_followup(
+                ticket["id"],
+                ticket_routes.TicketFollowupCreate(
+                    message="Respuesta para alumno",
+                    visibility="student",
+                ),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        messages = asyncio.run(
+            ticket_routes.get_ticket_messages(
+                ticket["id"],
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        self.assertEqual(
+            [message["message"] for message in messages],
+            ["Nota interna", "Respuesta para alumno"],
+        )
+
+    def test_student_cannot_read_messages_for_other_student_ticket(self):
+        payload = sample_ticket_payload()
+        payload["matricula"] = "99999"
+        ticket = asyncio.run(
+            ticket_routes.create_ticket(
+                TicketCreate(**payload),
+                current_user=self.user,
+                repository=self.repo,
+            )
+        )
+
+        with self.assertRaises(HTTPException) as context:
+            asyncio.run(
+                ticket_routes.get_ticket_messages(
+                    ticket["id"],
+                    current_user=self.student_user("15662"),
+                    repository=self.repo,
+                )
+            )
+
+        self.assertEqual(context.exception.status_code, 403)
+
     def test_empty_followup_is_rejected(self):
         with self.assertRaises(ValueError):
             ticket_routes.TicketFollowupCreate(message="", visibility="internal")
