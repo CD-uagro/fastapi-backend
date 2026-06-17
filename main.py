@@ -35,6 +35,7 @@ import re
 # Importar router de actualizaciones
 from update_routes import router as updates_router
 from appointment_routes import router as appointments_router
+from referral_routes import router as referrals_router
 from ticket_routes import router as tickets_router
 
 # Importar modelos y servicios de autenticación
@@ -69,6 +70,7 @@ app.add_middleware(
 # Montar router de actualizaciones
 app.include_router(updates_router)
 app.include_router(appointments_router)
+app.include_router(referrals_router)
 app.include_router(tickets_router)
 
 carnets = CosmosDBHelper(
