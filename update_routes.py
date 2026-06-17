@@ -24,26 +24,39 @@ router = APIRouter(prefix="/updates", tags=["updates"])
 
 # Versión actual del sistema (la más reciente disponible)
 LATEST_VERSION = VersionInfo(
-    version="2.4.20",
-    build_number=20,
-    release_date="2025-11-13",
+    version="2.6.1",
+    build_number=41,
+    release_date="2026-06-16",
     channel="stable",
-    download_url="https://github.com/edukshare-max/UPDATE_CRES_CARNET_/raw/master/releases/installers/CRES_Carnets_Setup_v2.4.20.exe",
-    file_size=13859237,  # ~13.22 MB
-    checksum="",  # Se calculará después
+    download_url="https://github.com/CD-uagro/UPDATE_CRES_CARNET_/releases/download/v2.6.1/CRES_Carnets_Setup_v2.6.1.exe",
+    file_size=13972922,
+    checksum="0D6FE105CA9324CB3D8FE9C78F3C4D1457E6DCBFF010DC59B26BCE28321DFCD8",
     minimum_version="2.0.0",
     is_mandatory=False,
     changelog=[
-        "🔧 Fix: Timeout aumentado a 15 min para descargas",
-        "⚡ Búsqueda paralela de carnets: 50% más rápida",
-        "🚀 Caché inteligente: datos frescos al guardar",
-        "⏱️ Búsqueda de notas optimizada: 40% más rápida",
-        "🎯 Debouncing en búsqueda: 90% menos llamadas"
+        "Corrige fallo de migracion SQLite parcial en Expedientes.",
+        "Evita error duplicate column name: client_id.",
+        "Restaura visualizacion de notas locales y notas Cosmos.",
+        "Aisla carga local/nube para que una fuente no bloquee a la otra.",
+        "Agrega compatibilidad con respuesta Cosmos { value: [...] }.",
+        "Mantiene deduplicacion de notas por clientId/id/client_id."
     ]
 )
 
 # Historial completo de versiones
 VERSION_HISTORY: List[ChangelogEntry] = [
+    ChangelogEntry(
+        version="2.6.1",
+        date="2026-06-16",
+        changes=[
+            "Corrige fallo de migracion SQLite parcial en Expedientes.",
+            "Evita error duplicate column name: client_id.",
+            "Restaura visualizacion de notas locales y notas Cosmos.",
+            "Aisla carga local/nube para que una fuente no bloquee a la otra.",
+            "Agrega compatibilidad con respuesta Cosmos { value: [...] }.",
+            "Mantiene deduplicacion de notas por clientId/id/client_id."
+        ]
+    ),
     ChangelogEntry(
         version="2.4.20",
         date="2025-11-13",
