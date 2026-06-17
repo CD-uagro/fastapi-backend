@@ -2,7 +2,12 @@ import os
 import uuid
 from typing import Any, Dict, List, Optional
 
+from azure.cosmos import PartitionKey
 from azure.cosmos.exceptions import CosmosHttpResponseError
+try:
+    from azure.cosmos.exceptions import CosmosResourceNotFoundError
+except ImportError:  # pragma: no cover - compatibility with older SDKs
+    CosmosResourceNotFoundError = CosmosHttpResponseError
 
 from cosmos_helper import CosmosDBHelper
 from referral_models import utc_now_iso
@@ -20,12 +25,37 @@ def generate_referral_id() -> str:
     return f"ref_{uuid.uuid4().hex}"
 
 
+def _is_not_found_error(exc: CosmosHttpResponseError) -> bool:
+    return getattr(exc, "status_code", None) == 404
+
+
+def _build_referrals_helper() -> CosmosDBHelper:
+    container_name = os.environ.get("COSMOS_CONTAINER_REFERRALS", "referrals")
+    partition_key = os.environ.get("COSMOS_PK_REFERRALS", "/student/matricula")
+    helper = CosmosDBHelper(container_name, partition_key)
+    try:
+        helper.container.read()
+    except CosmosResourceNotFoundError:
+        helper.database.create_container(
+            id=container_name,
+            partition_key=PartitionKey(path=partition_key),
+        )
+        helper.container = helper.database.get_container_client(container_name)
+    except CosmosHttpResponseError as exc:
+        if _is_not_found_error(exc):
+            helper.database.create_container(
+                id=container_name,
+                partition_key=PartitionKey(path=partition_key),
+            )
+            helper.container = helper.database.get_container_client(container_name)
+        else:
+            raise
+    return helper
+
+
 class CosmosReferralRepository:
     def __init__(self, referrals_helper: Optional[CosmosDBHelper] = None):
-        self.referrals = referrals_helper or CosmosDBHelper(
-            os.environ.get("COSMOS_CONTAINER_REFERRALS", "referrals"),
-            os.environ.get("COSMOS_PK_REFERRALS", "/student/matricula"),
-        )
+        self.referrals = referrals_helper or _build_referrals_helper()
 
     def create_referral(self, referral: Dict[str, Any]) -> Dict[str, Any]:
         referral.setdefault("id", generate_referral_id())
