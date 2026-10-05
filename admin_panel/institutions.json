@@ -1,0 +1,354 @@
+[
+  {
+    "value": "cres-cruz-grande",
+    "label": "CRES Campus Cruz Grande (Costa Chica)"
+  },
+  {
+    "value": "cres-zumpango",
+    "label": "CRES Campus Zumpango (Zona Centro)"
+  },
+  {
+    "value": "cres-taxco-viejo",
+    "label": "CRES Campus Taxco el Viejo (Zona Norte)"
+  },
+  {
+    "value": "cres-huamuxtitlan",
+    "label": "CRES Campus Huamuxtitlán (Montaña)"
+  },
+  {
+    "value": "cres-llano-largo",
+    "label": "CRES Campus Llano Largo (Acapulco)"
+  },
+  {
+    "value": "cres-tecpan",
+    "label": "CRES Campus Tecpán (Costa Grande)"
+  },
+  {
+    "value": "clinica-chilpancingo",
+    "label": "Clínica Universitaria UAGro – Chilpancingo"
+  },
+  {
+    "value": "clinica-acapulco",
+    "label": "Clínica Universitaria UAGro – Acapulco"
+  },
+  {
+    "value": "clinica-iguala",
+    "label": "Clínica Universitaria UAGro – Iguala"
+  },
+  {
+    "value": "clinica-ometepec",
+    "label": "Servicio Médico Universitario – Ometepec"
+  },
+  {
+    "value": "fac-gobierno",
+    "label": "Facultad de Gobierno y Gestión Pública"
+  },
+  {
+    "value": "fac-arquitectura",
+    "label": "Facultad de Arquitectura y Urbanismo"
+  },
+  {
+    "value": "fac-quimico",
+    "label": "Facultad de Ciencias Químico Biológicas"
+  },
+  {
+    "value": "fac-comunicacion",
+    "label": "Facultad de Comunicación y Mercadotecnia"
+  },
+  {
+    "value": "fac-derecho-chil",
+    "label": "Facultad de Derecho (Chilpancingo)"
+  },
+  {
+    "value": "fac-filosofia",
+    "label": "Facultad de Filosofía y Letras"
+  },
+  {
+    "value": "fac-ingenieria",
+    "label": "Facultad de Ingeniería"
+  },
+  {
+    "value": "fac-matematicas-centro",
+    "label": "Facultad de Matemáticas (Centro)"
+  },
+  {
+    "value": "fac-contaduria",
+    "label": "Facultad de Contaduría y Administración"
+  },
+  {
+    "value": "fac-derecho-aca",
+    "label": "Facultad de Derecho (Acapulco)"
+  },
+  {
+    "value": "fac-ecologia",
+    "label": "Facultad de Ecología Marina"
+  },
+  {
+    "value": "fac-economia",
+    "label": "Facultad de Economía (Campus Llano Largo)"
+  },
+  {
+    "value": "fac-enfermeria2",
+    "label": "Facultad de Enfermería No. 2"
+  },
+  {
+    "value": "fac-matematicas-sur",
+    "label": "Facultad de Matemáticas (Sur)"
+  },
+  {
+    "value": "fac-lenguas",
+    "label": "Facultad de Lenguas Extranjeras"
+  },
+  {
+    "value": "fac-medicina",
+    "label": "Facultad de Medicina"
+  },
+  {
+    "value": "fac-odontologia",
+    "label": "Facultad de Odontología"
+  },
+  {
+    "value": "fac-turismo",
+    "label": "Facultad de Turismo"
+  },
+  {
+    "value": "fac-agropecuarias",
+    "label": "Facultad de Ciencias Agropecuarias y Ambientales"
+  },
+  {
+    "value": "fac-matematicas-norte",
+    "label": "Facultad de Matemáticas (Norte)"
+  },
+  {
+    "value": "prep-1",
+    "label": "Escuela Preparatoria No. 1"
+  },
+  {
+    "value": "prep-2",
+    "label": "Escuela Preparatoria No. 2"
+  },
+  {
+    "value": "prep-3",
+    "label": "Escuela Preparatoria No. 3"
+  },
+  {
+    "value": "prep-4",
+    "label": "Escuela Preparatoria No. 4"
+  },
+  {
+    "value": "prep-5",
+    "label": "Escuela Preparatoria No. 5"
+  },
+  {
+    "value": "prep-6",
+    "label": "Escuela Preparatoria No. 6"
+  },
+  {
+    "value": "prep-7",
+    "label": "Escuela Preparatoria No. 7"
+  },
+  {
+    "value": "prep-8",
+    "label": "Escuela Preparatoria No. 8"
+  },
+  {
+    "value": "prep-9",
+    "label": "Escuela Preparatoria No. 9"
+  },
+  {
+    "value": "prep-10",
+    "label": "Escuela Preparatoria No. 10"
+  },
+  {
+    "value": "prep-11",
+    "label": "Escuela Preparatoria No. 11"
+  },
+  {
+    "value": "prep-12",
+    "label": "Escuela Preparatoria No. 12"
+  },
+  {
+    "value": "prep-13",
+    "label": "Escuela Preparatoria No. 13"
+  },
+  {
+    "value": "prep-14",
+    "label": "Escuela Preparatoria No. 14"
+  },
+  {
+    "value": "prep-15",
+    "label": "Escuela Preparatoria No. 15"
+  },
+  {
+    "value": "prep-16",
+    "label": "Escuela Preparatoria No. 16"
+  },
+  {
+    "value": "prep-17",
+    "label": "Escuela Preparatoria No. 17"
+  },
+  {
+    "value": "prep-18",
+    "label": "Escuela Preparatoria No. 18"
+  },
+  {
+    "value": "prep-19",
+    "label": "Escuela Preparatoria No. 19"
+  },
+  {
+    "value": "prep-20",
+    "label": "Escuela Preparatoria No. 20"
+  },
+  {
+    "value": "prep-21",
+    "label": "Escuela Preparatoria No. 21"
+  },
+  {
+    "value": "prep-22",
+    "label": "Escuela Preparatoria No. 22"
+  },
+  {
+    "value": "prep-23",
+    "label": "Escuela Preparatoria No. 23"
+  },
+  {
+    "value": "prep-24",
+    "label": "Escuela Preparatoria No. 24"
+  },
+  {
+    "value": "prep-25",
+    "label": "Escuela Preparatoria No. 25"
+  },
+  {
+    "value": "prep-26",
+    "label": "Escuela Preparatoria No. 26"
+  },
+  {
+    "value": "prep-27",
+    "label": "Escuela Preparatoria No. 27"
+  },
+  {
+    "value": "prep-28",
+    "label": "Escuela Preparatoria No. 28"
+  },
+  {
+    "value": "prep-29",
+    "label": "Escuela Preparatoria No. 29"
+  },
+  {
+    "value": "prep-30",
+    "label": "Escuela Preparatoria No. 30"
+  },
+  {
+    "value": "prep-31",
+    "label": "Escuela Preparatoria No. 31"
+  },
+  {
+    "value": "prep-32",
+    "label": "Escuela Preparatoria No. 32"
+  },
+  {
+    "value": "prep-33",
+    "label": "Escuela Preparatoria No. 33"
+  },
+  {
+    "value": "prep-34",
+    "label": "Escuela Preparatoria No. 34"
+  },
+  {
+    "value": "prep-35",
+    "label": "Escuela Preparatoria No. 35"
+  },
+  {
+    "value": "prep-36",
+    "label": "Escuela Preparatoria No. 36"
+  },
+  {
+    "value": "prep-37",
+    "label": "Escuela Preparatoria No. 37"
+  },
+  {
+    "value": "prep-38",
+    "label": "Escuela Preparatoria No. 38"
+  },
+  {
+    "value": "prep-39",
+    "label": "Escuela Preparatoria No. 39"
+  },
+  {
+    "value": "prep-40",
+    "label": "Escuela Preparatoria No. 40"
+  },
+  {
+    "value": "prep-41",
+    "label": "Escuela Preparatoria No. 41"
+  },
+  {
+    "value": "prep-42",
+    "label": "Escuela Preparatoria No. 42"
+  },
+  {
+    "value": "prep-43",
+    "label": "Escuela Preparatoria No. 43"
+  },
+  {
+    "value": "prep-44",
+    "label": "Escuela Preparatoria No. 44"
+  },
+  {
+    "value": "prep-45",
+    "label": "Escuela Preparatoria No. 45"
+  },
+  {
+    "value": "prep-46",
+    "label": "Escuela Preparatoria No. 46"
+  },
+  {
+    "value": "prep-47",
+    "label": "Escuela Preparatoria No. 47"
+  },
+  {
+    "value": "prep-48",
+    "label": "Escuela Preparatoria No. 48"
+  },
+  {
+    "value": "prep-49",
+    "label": "Escuela Preparatoria No. 49"
+  },
+  {
+    "value": "prep-50",
+    "label": "Escuela Preparatoria No. 50"
+  },
+  {
+    "value": "rectoria",
+    "label": "Rectoría / Administración Central"
+  },
+  {
+    "value": "coord-sur",
+    "label": "Coordinación Regional Zona Sur (Acapulco)"
+  },
+  {
+    "value": "coord-centro",
+    "label": "Coordinación Regional Zona Centro"
+  },
+  {
+    "value": "coord-norte",
+    "label": "Coordinación Regional Zona Norte"
+  },
+  {
+    "value": "coord-costa-chica",
+    "label": "Coordinación Regional Costa Chica"
+  },
+  {
+    "value": "coord-costa-grande",
+    "label": "Coordinación Regional Costa Grande"
+  },
+  {
+    "value": "coord-montana",
+    "label": "Coordinación Regional Montaña"
+  },
+  {
+    "value": "coord-tierra-caliente",
+    "label": "Coordinación Regional Tierra Caliente"
+  }
+]

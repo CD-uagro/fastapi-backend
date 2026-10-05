@@ -19,6 +19,7 @@ const SASUAccess = (() => {
                 else if (response.status === 403) message = typeof data?.detail === 'string' ? data.detail : 'Acceso denegado.';
                 else if (response.status === 422) message = 'Revisa el usuario y selecciona una institución de la lista.';
                 else if (response.status === 429) message = 'Hay demasiadas solicitudes. Espera un momento y reintenta.';
+                else if (response.status === 400) message = typeof data?.detail === 'string' ? data.detail : 'Revisa los datos e intenta de nuevo.';
                 else message = 'El servicio no está disponible en este momento. Intenta de nuevo.';
                 throw new ApiError(message, response.status);
             }

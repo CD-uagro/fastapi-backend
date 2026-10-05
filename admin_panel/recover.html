@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>SASU — Recuperar contraseña</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="login-container">
+        <section class="login-card">
+            <header class="login-header"><h1>SASU</h1><h2>Recuperar contraseña</h2></header>
+            <p id="recovery-status" role="status" aria-live="polite">Comprobando disponibilidad…</p>
+            <form id="request-recovery" hidden>
+                <div class="form-group"><label for="recovery-user">Usuario</label><input id="recovery-user" type="text" autocomplete="username" required maxlength="50"></div>
+                <div class="form-group"><label for="recovery-campus">Institución</label><select id="recovery-campus" required><option value="">Selecciona tu institución</option></select></div>
+                <div class="form-group"><label for="recovery-email">Correo registrado</label><input id="recovery-email" type="email" autocomplete="email" required></div>
+                <p>Te enviaremos un enlace de un solo uso, válido durante 15 minutos. Tu contraseña actual seguirá funcionando hasta que elijas una nueva.</p>
+                <button class="btn btn-primary" type="submit" disabled>Enviar enlace</button>
+            </form>
+            <form id="confirm-recovery" hidden>
+                <div class="form-group"><label for="new-password">Contraseña nueva</label><input id="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
+                <div class="form-group"><label for="repeat-password">Repite la contraseña nueva</label><input id="repeat-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></div>
+                <p>Usa al menos ocho caracteres, con mayúscula, minúscula y número.</p>
+                <div class="login-options"><label><input id="recovery-show-password" type="checkbox"> Mostrar contraseña</label></div>
+                <button class="btn btn-primary" type="submit" disabled>Guardar contraseña nueva</button>
+            </form>
+            <p id="recovery-error" class="error-message" role="alert"></p>
+            <p class="login-help"><a href="recover.html">Solicitar otro enlace</a> · <a href="./">Volver al acceso</a></p>
+        </section>
+    </main>
+    <script src="access.js"></script>
+    <script src="recovery.js"></script>
+</body>
+</html>

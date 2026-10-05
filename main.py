@@ -37,6 +37,7 @@ from update_routes import router as updates_router
 from appointment_routes import router as appointments_router
 from referral_routes import router as referrals_router
 from ticket_routes import router as tickets_router
+from password_recovery import build_recovery_router
 
 # Importar modelos y servicios de autenticación
 from auth_models import (
@@ -829,6 +830,8 @@ usuarios = CosmosDBHelper(
 auditoria = CosmosDBHelper(
     os.environ.get("COSMOS_CONTAINER_AUDITORIA", "auditoria"), "/id"
 )
+
+app.include_router(build_recovery_router(usuarios, auditoria))
 
 def log_audit(usuario: str, accion: AuditAction, recurso: Optional[str] = None, detalles: Optional[str] = None, ip: Optional[str] = None):
     """Registra una acción en el log de auditoría."""
