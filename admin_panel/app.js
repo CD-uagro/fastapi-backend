@@ -3,7 +3,9 @@
 // ============================================
 
 // Configuración
-const API_BASE_URL = 'https://fastapi-backend-o7ks.onrender.com';
+const API_BASE_URL = window.location.origin;
+const accessStorage = (() => { try { return window.localStorage; } catch { return null; } })();
+let accessBusy = false;
 let authToken = null;
 let currentUser = null;
 
@@ -12,27 +14,57 @@ let currentUser = null;
 // ============================================
 
 // Verificar si hay sesión activa al cargar
-document.addEventListener('DOMContentLoaded', () => {
-    authToken = localStorage.getItem('auth_token');
-    const userData = localStorage.getItem('user_data');
-    
-    // Inicializar autocompletados
-    setTimeout(() => {
-        crearAutocompletado('login-campus');
-        crearAutocompletado('form-campus');
-    }, 100);
-    
-    if (authToken && userData) {
-        try {
-            currentUser = JSON.parse(userData);
-            showDashboard();
-        } catch (e) {
-            showLogin();
-        }
-    } else {
-        showLogin();
+document.addEventListener('DOMContentLoaded', async () => {
+    crearAutocompletado('login-campus');
+    crearAutocompletado('form-campus');
+    const remembered = SASUAccess.readRemembered(accessStorage);
+    if (remembered) {
+        document.getElementById('login-username').value = remembered.username;
+        document.getElementById('login-campus').setInstitucion(remembered.campus);
+        document.getElementById('remember-access').checked = true;
     }
+    document.getElementById('remember-access').addEventListener('change', e => {
+        if (!e.target.checked) SASUAccess.remember(accessStorage, false);
+    });
+    document.getElementById('show-password').addEventListener('change', e => {
+        document.getElementById('login-password').type = e.target.checked ? 'text' : 'password';
+    });
+    showLogin();
+    try { authToken = accessStorage.getItem('auth_token'); } catch { authToken = null; }
+    if (!authToken) return;
+    setAccessBusy(true, 'Comprobando tu sesi\u00f3n...');
+    try {
+        currentUser = await SASUAccess.requestJson(`${API_BASE_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${authToken}` }
+        });
+        if (currentUser.rol !== 'admin') throw new SASUAccess.ApiError('Solo administradores pueden acceder al panel.', 403);
+        showDashboard();
+    } catch (error) {
+        clearSession();
+        showLogin();
+        showError('login-error', error.status === 401
+            ? 'Tu sesi\u00f3n venci\u00f3. Inicia sesi\u00f3n de nuevo.' : error.message);
+    } finally { setAccessBusy(false); }
 });
+
+function clearSession() {
+    authToken = null;
+    currentUser = null;
+    try {
+        accessStorage.removeItem('auth_token');
+        accessStorage.removeItem('user_data');
+    } catch { /* Sin almacenamiento persistente. */ }
+}
+
+function setAccessBusy(busy, message = '') {
+    accessBusy = busy;
+    const btn = document.getElementById('login-btn');
+    btn.disabled = busy;
+    btn.querySelector('.spinner').style.display = busy ? 'block' : 'none';
+    btn.querySelector('span').style.display = busy ? 'none' : 'block';
+    document.getElementById('login-status').textContent = message;
+    document.getElementById('login-form').setAttribute('aria-busy', String(busy));
+}
 
 function showLogin() {
     document.getElementById('login-screen').classList.add('active');
@@ -71,72 +103,48 @@ function updateUserInfo() {
 // LOGIN
 // ============================================
 
-document.getElementById('login-btn').addEventListener('click', async () => {
+document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (accessBusy) return;
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value;
     const campusInput = document.getElementById('login-campus');
     const campus = campusInput.getSelectedValue ? campusInput.getSelectedValue() : null;
-    
     if (!username || !password) {
-        showError('login-error', 'Por favor complete todos los campos');
+        showError('login-error', 'Complete usuario y contrase\u00f1a');
         return;
     }
-    
     if (!campus) {
-        showError('login-error', 'Por favor selecciona una institución de las opciones sugeridas');
+        showError('login-error', 'Selecciona una instituci\u00f3n de las opciones sugeridas');
         return;
     }
-    
-    const btn = document.getElementById('login-btn');
-    const spinner = btn.querySelector('.spinner');
-    const span = btn.querySelector('span');
-    
-    btn.disabled = true;
-    spinner.style.display = 'block';
-    span.style.display = 'none';
+    setAccessBusy(true, 'Conectando con SASU...');
     hideError('login-error');
-    
+    const slowNotice = setTimeout(() => {
+        document.getElementById('login-status').textContent = 'El servidor est\u00e1 tardando. Seguimos esperando su respuesta...';
+    }, 5000);
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const data = await SASUAccess.requestJson(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password, campus })
         });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Error al iniciar sesión');
-        }
-        
-        const data = await response.json();
-        
-        // Verificar que sea admin
-        if (data.user.rol !== 'admin') {
-            throw new Error('Solo administradores pueden acceder al panel');
-        }
-        
-        // Guardar sesión
+        if (!data.user || !data.access_token) throw new Error('Respuesta de acceso incompleta. Intenta de nuevo.');
+        if (data.user.rol !== 'admin') throw new Error('Solo administradores pueden acceder al panel');
         authToken = data.access_token;
         currentUser = data.user;
-        localStorage.setItem('auth_token', authToken);
-        localStorage.setItem('user_data', JSON.stringify(currentUser));
-        
-        // Mostrar dashboard
+        try {
+            accessStorage.setItem('auth_token', authToken);
+            accessStorage.setItem('user_data', JSON.stringify(currentUser));
+        } catch { /* La sesi\u00f3n actual puede continuar sin persistencia. */ }
+        SASUAccess.remember(accessStorage, document.getElementById('remember-access').checked, username, campus);
+        document.getElementById('login-password').value = '';
         showDashboard();
-        
     } catch (error) {
         showError('login-error', error.message);
     } finally {
-        btn.disabled = false;
-        spinner.style.display = 'none';
-        span.style.display = 'block';
-    }
-});
-
-// Enter para login
-document.getElementById('login-password').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('login-btn').click();
+        clearTimeout(slowNotice);
+        setAccessBusy(false);
     }
 });
 
@@ -146,10 +154,7 @@ document.getElementById('login-password').addEventListener('keypress', (e) => {
 
 document.getElementById('logout-btn').addEventListener('click', () => {
     if (confirm('¿Está seguro que desea cerrar sesión?')) {
-        authToken = null;
-        currentUser = null;
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
+        clearSession();
         showLogin();
     }
 });
@@ -208,13 +213,9 @@ async function loadUsers() {
         if (campus) url += `campus=${campus}&`;
         if (rol) url += `rol=${rol}&`;
         
-        const response = await fetch(url, {
+        const users = await SASUAccess.requestJson(url, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-        
-        if (!response.ok) throw new Error('Error al cargar usuarios');
-        
-        const users = await response.json();
         
         if (users.length === 0) {
             empty.style.display = 'block';

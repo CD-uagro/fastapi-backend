@@ -25,17 +25,17 @@
                 </div>
 
                 <!-- Formulario de Login -->
-                <div class="login-form">
+                <form id="login-form" class="login-form">
                     <h2>Panel de Administración</h2>
                     
                     <div class="form-group">
                         <label for="login-username">Usuario</label>
-                        <input type="text" id="login-username" placeholder="Ingrese su usuario" autocomplete="username">
+                        <input type="text" id="login-username" placeholder="Ingrese su usuario" autocomplete="username" required>
                     </div>
 
                     <div class="form-group">
                         <label for="login-password">Contraseña</label>
-                        <input type="password" id="login-password" placeholder="Ingrese su contraseña" autocomplete="current-password">
+                        <input type="password" id="login-password" placeholder="Ingrese su contraseña" autocomplete="current-password" required>
                     </div>
 
                     <div class="form-group">
@@ -48,13 +48,22 @@
                         </small>
                     </div>
 
-                    <div id="login-error" class="error-message"></div>
+                    <div class="login-options">
+                        <label><input type="checkbox" id="show-password"> Mostrar contraseña</label>
+                        <label><input type="checkbox" id="remember-access"> Recordar usuario e institución</label>
+                    </div>
+                    <p id="login-status" class="login-status" role="status" aria-live="polite"></p>
+                    <div id="login-error" class="error-message" role="alert"></div>
 
-                    <button id="login-btn" class="btn btn-primary">
+                    <button type="submit" id="login-btn" class="btn btn-primary">
                         <span>Iniciar Sesión</span>
                         <div class="spinner" style="display: none;"></div>
                     </button>
-                </div>
+                    <details class="login-help">
+                        <summary>Olvidé mi usuario o contraseña</summary>
+                        <p>Solicita al responsable de SASU que confirme tu usuario e institución y restablezca tu contraseña conservando tu cuenta. La recuperación automática por correo aún no está disponible.</p>
+                    </details>
+                </form>
 
                 <div class="login-footer">
                     <p>© 2025 Universidad Autónoma de Guerrero</p>
@@ -471,6 +480,7 @@
         </div>
     </div>
 
+    <script src="access.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

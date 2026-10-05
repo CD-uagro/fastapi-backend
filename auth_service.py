@@ -183,7 +183,7 @@ def is_user_locked(user: UserInDB) -> bool:
 
 def should_lock_user(user: UserInDB) -> bool:
     """Determina si un usuario debe ser bloqueado por intentos fallidos."""
-    return user.intentos_fallidos >= MAX_LOGIN_ATTEMPTS
+    return user.intentos_fallidos + 1 >= MAX_LOGIN_ATTEMPTS
 
 def calculate_lockout_time() -> str:
     """Calcula el tiempo hasta el cual el usuario estará bloqueado."""

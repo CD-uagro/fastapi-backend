@@ -1050,18 +1050,20 @@ async def register_user(user: UserCreate, current_user: UserResponse = Depends(r
         raise HTTPException(status_code=500, detail=f"Error al crear usuario: {str(e)}")
 
 @app.post("/auth/login", response_model=Token, tags=["Autenticación"])
-async def login(request: Request, login_data: LoginRequest):
+def login(request: Request, login_data: LoginRequest):
     """
     Iniciar sesión y obtener token JWT.
     """
     try:
         # Buscar usuario
-        user_id = AuthService.generate_user_id(login_data.username, login_data.campus or Campus.LLANO_LARGO)
+        user_id = AuthService.generate_user_id(login_data.username, login_data.campus or Campus.CRES_LLANO_LARGO)
         
         try:
             user_dict = usuarios.read_item(user_id, user_id)
             user = UserInDB(**user_dict)
-        except:
+        except CosmosHttpResponseError as exc:
+            if exc.status_code != 404:
+                raise HTTPException(status_code=503, detail="El servicio de acceso no está disponible. Intente de nuevo.") from exc
             # Log intento fallido
             log_audit(
                 login_data.username,
@@ -1080,6 +1082,10 @@ async def login(request: Request, login_data: LoginRequest):
                 status_code=403,
                 detail=f"Usuario bloqueado temporalmente por múltiples intentos fallidos. Intente después de {user.bloqueado_hasta}"
             )
+        if user.bloqueado_hasta is not None:
+            user.intentos_fallidos = 0
+            user_dict["intentos_fallidos"] = 0
+            user_dict["bloqueado_hasta"] = None
         
         # Verificar si está activo
         if not user.activo:
@@ -1150,19 +1156,21 @@ async def login(request: Request, login_data: LoginRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error en login: {str(e)}")
+        raise HTTPException(status_code=503, detail="El servicio de acceso no está disponible. Intente de nuevo.") from e
 
 @app.get("/auth/me", response_model=UserResponse, tags=["Autenticación"])
-async def get_current_user_info(current_user = Depends(get_current_user)):
+def get_current_user_info(current_user = Depends(get_current_user)):
     """
     Obtener información del usuario actual desde el token.
     """
     user_id = AuthService.generate_user_id(current_user.username, current_user.campus)
     user_dict = usuarios.read_item(user_id, user_id)
+    if not user_dict.get("activo", True):
+        raise HTTPException(status_code=403, detail="Usuario desactivado. Contacte al administrador.")
     return UserResponse(**{k: v for k, v in user_dict.items() if k != "password_hash"})
 
 @app.get("/auth/users", response_model=list[UserResponse], tags=["Gestión de Usuarios"])
-async def list_users(
+def list_users(
     campus: Optional[str] = None,
     rol: Optional[str] = None,
     current_user = Depends(require_role(UserRole.ADMIN))
@@ -1418,7 +1426,7 @@ async def obtener_estadisticas_vacunacion():
 # SERVIR PANEL WEB DE ADMINISTRACIÓN
 # ============================================
 try:
-    app.mount("/admin", StaticFiles(directory="admin_panel", html=True), name="admin")
+    app.mount("/admin", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "admin_panel"), html=True), name="admin")
     print("✅ Panel web admin disponible en /admin")
 except Exception as e:
     print(f"⚠️  Panel web admin no disponible: {e}")
