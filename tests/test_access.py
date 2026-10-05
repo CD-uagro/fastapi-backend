@@ -142,6 +142,12 @@ class AccessTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 ask_password(argparse.ArgumentParser())
 
+    def test_recovery_page_is_public_and_returns_to_desktop_app(self):
+        response = self.client.get("/recuperar")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("vuelve a la app SASU", response.text)
+        self.assertEqual(response.headers["referrer-policy"], "no-referrer")
+
 
 if __name__ == "__main__":
     unittest.main()

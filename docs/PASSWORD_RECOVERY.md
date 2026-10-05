@@ -1,6 +1,6 @@
 # Recuperación de contraseña por correo
 
-Acceso público para todos los roles: `/admin/recover.html`. El panel administrativo incluye un enlace en «Olvidé mi usuario o contraseña». Las aplicaciones instaladas pueden utilizar esa misma dirección desde su navegador, sin reinstalación.
+Acceso público para todos los roles: `/recuperar`. El panel administrativo incluye un enlace en «Olvidé mi usuario o contraseña». Las aplicaciones instaladas pueden utilizar esa misma dirección desde su navegador, sin reinstalación.
 
 ## Activación en Render
 

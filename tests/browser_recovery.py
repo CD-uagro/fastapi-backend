@@ -29,7 +29,7 @@ def run():
                     {"message": "Contraseña actualizada."} if status == 200 else {"detail": "El enlace venció. Solicita uno nuevo."})
                 route.fulfill(status=status, content_type="application/json", body=json.dumps(body))
             else:
-                name = path.rsplit("/", 1)[-1]
+                name = "recover.html" if path == "/recuperar" else path.rsplit("/", 1)[-1]
                 if name not in {"recover.html", "recovery.js", "access.js", "styles.css", "institutions.json"}:
                     route.fulfill(status=404, body="missing")
                 else:
@@ -40,7 +40,7 @@ def run():
         page = context.new_page()
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
-        page.goto("https://sasu.test/admin/recover.html")
+        page.goto("https://sasu.test/recuperar")
         expect(page.locator("#recovery-status")).to_contain_text("aún no está habilitada")
         expect(page.locator("#request-recovery button")).to_be_disabled()
         state["enabled"] = True
@@ -53,7 +53,7 @@ def run():
         expect(page.locator("#recovery-status")).to_contain_text("recibirás un enlace")
         assert state["calls"][-1][1]["username"] == "medico"
         token = "opaque-test-token"
-        page.goto("https://sasu.test/admin/recover.html#token=" + token)
+        page.goto("https://sasu.test/recuperar#token=" + token)
         expect(page.locator("#confirm-recovery")).to_be_visible()
         expect(page.locator("#request-recovery")).to_be_hidden()
         expect(page.locator("#confirm-recovery button")).to_be_enabled()

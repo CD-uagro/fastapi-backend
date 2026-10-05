@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="referrer" content="no-referrer">
     <title>SASU — Recuperar contraseña</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/admin/styles.css">
 </head>
 <body>
     <main class="login-container">
@@ -27,10 +27,11 @@
                 <button class="btn btn-primary" type="submit" disabled>Guardar contraseña nueva</button>
             </form>
             <p id="recovery-error" class="error-message" role="alert"></p>
-            <p class="login-help"><a href="recover.html">Solicitar otro enlace</a> · <a href="./">Volver al acceso</a></p>
+            <p class="login-help"><a href="/recuperar">Solicitar otro enlace</a></p>
+            <p>Después del cambio, vuelve a la app SASU en tu computadora e inicia sesión con tu contraseña nueva.</p>
         </section>
     </main>
-    <script src="access.js"></script>
-    <script src="recovery.js"></script>
+    <script src="/admin/access.js"></script>
+    <script src="/admin/recovery.js"></script>
 </body>
 </html>

@@ -19,7 +19,7 @@ sys.stderr.flush()
 
 # Sistema de Autenticación CRES - v1.1
 from fastapi import FastAPI, HTTPException, Body, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm
@@ -1428,6 +1428,14 @@ async def obtener_estadisticas_vacunacion():
 # ============================================
 # SERVIR PANEL WEB DE ADMINISTRACIÓN
 # ============================================
+@app.get("/recuperar", include_in_schema=False)
+def public_password_recovery():
+    return FileResponse(
+        os.path.join(os.path.dirname(__file__), "admin_panel", "recover.html"),
+        media_type="text/html",
+        headers={"Referrer-Policy": "no-referrer", "Cache-Control": "no-store"},
+    )
+
 try:
     app.mount("/admin", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "admin_panel"), html=True), name="admin")
     print("✅ Panel web admin disponible en /admin")

@@ -20,7 +20,7 @@
         try {
             const [availability, institutions] = await Promise.all([
                 SASUAccess.requestJson('/auth/password-recovery/status'),
-                SASUAccess.requestJson('institutions.json')
+                SASUAccess.requestJson('/admin/institutions.json')
             ]);
             institutions.forEach(institution => {
                 const option = document.createElement('option');

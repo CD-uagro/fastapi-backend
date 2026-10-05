@@ -114,7 +114,7 @@ class RecoveryService:
             self.replace(doc, password_recovery={"digest": digest, "issued": self.clock(),
                                                 "expires": self.clock() + 900, "email": doc["email"],
                                                 "password_fingerprint": hashlib.sha256(doc["password_hash"].encode()).hexdigest()})
-            link = config["origin"] + "/admin/recover.html#token=" + token
+            link = config["origin"] + "/recuperar#token=" + token
             self.sender(config, doc["email"], doc["username"], link, digest)
         except Exception as exc:
             # Igual respuesta pública para cuenta ausente y fallo de envío.
