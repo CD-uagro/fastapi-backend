@@ -266,6 +266,13 @@ function renderUsersTable(users) {
                 </button>
             </td>
         `;
+        const resetButton = document.createElement('button');
+        resetButton.type = 'button';
+        resetButton.className = 'btn btn-secondary';
+        resetButton.textContent = 'Restablecer contraseña';
+        resetButton.disabled = !user.activo;
+        resetButton.addEventListener('click', () => openPasswordReset(user));
+        tr.lastElementChild.appendChild(resetButton);
         tbody.appendChild(tr);
     });
     
@@ -952,3 +959,68 @@ function crearAutocompletado(inputId, onSelect) {
 
 console.log('✅ SASU Admin Panel cargado correctamente');
 console.log('🔐 API:', API_BASE_URL);
+
+// Restablecimiento asistido: nunca conservar contraseñas en almacenamiento del navegador.
+let resetUserId = null;
+let resetBusy = false;
+function openPasswordReset(user) {
+    if (resetBusy) return;
+    document.getElementById('reset-password-form').reset();
+    document.getElementById('reset-password-new').type = 'password';
+    document.getElementById('reset-password-repeat').type = 'password';
+    document.getElementById('reset-password-error').textContent = '';
+    document.getElementById('reset-password-target').textContent =
+        `${user.nombre_completo} - ${user.username} - ${getCampusLabel(user.campus)} - ${user.email}`;
+    resetUserId = user.id;
+    document.getElementById('reset-password-dialog').showModal();
+}
+document.getElementById('reset-password-cancel').addEventListener('click', () => {
+    if (!resetBusy) document.getElementById('reset-password-dialog').close();
+});
+document.getElementById('reset-password-dialog').addEventListener('cancel', event => {
+    if (resetBusy) event.preventDefault();
+});
+document.getElementById('reset-password-dialog').addEventListener('close', () => {
+    document.getElementById('reset-password-form').reset();
+    resetUserId = null;
+});
+document.getElementById('reset-password-show').addEventListener('change', event => {
+    for (const id of ['reset-password-new', 'reset-password-repeat']) {
+        document.getElementById(id).type = event.target.checked ? 'text' : 'password';
+    }
+});
+document.getElementById('reset-password-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (resetBusy || !resetUserId) return;
+    const errorBox = document.getElementById('reset-password-error');
+    const password = document.getElementById('reset-password-new').value;
+    errorBox.textContent = '';
+    if (password !== document.getElementById('reset-password-repeat').value) {
+        errorBox.textContent = 'Las contraseñas no coinciden.';
+        return;
+    }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || password.length < 8 || new TextEncoder().encode(password).length > 72) {
+        errorBox.textContent = 'Usa al menos 8 caracteres, mayúsculas, minúsculas y números; máximo 72 bytes.';
+        return;
+    }
+    resetBusy = true;
+    const button = document.getElementById('reset-password-submit');
+    button.disabled = true;
+    button.textContent = 'Guardando...';
+    try {
+        const result = await SASUAccess.requestJson(`${API_BASE_URL}/auth/users/${encodeURIComponent(resetUserId)}/reset-password`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password, identity_verified: document.getElementById('reset-password-verified').checked })
+        });
+        document.getElementById('reset-password-dialog').close();
+        alert(result.message);
+        loadUsers();
+    } catch (error) {
+        errorBox.textContent = error.status === 409 ? 'La cuenta cambió. Actualiza la lista y vuelve a intentar.' : error.message;
+    } finally {
+        resetBusy = false;
+        button.disabled = false;
+        button.textContent = 'Restablecer contraseña';
+    }
+});

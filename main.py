@@ -38,6 +38,7 @@ from appointment_routes import router as appointments_router
 from referral_routes import router as referrals_router
 from ticket_routes import router as tickets_router
 from password_recovery import build_recovery_router
+from admin_password_reset import build_admin_reset_router
 
 # Importar modelos y servicios de autenticación
 from auth_models import (
@@ -850,6 +851,8 @@ def log_audit(usuario: str, accion: AuditAction, recurso: Optional[str] = None, 
         print(f"📝 Auditoría: {usuario} → {accion.value}")
     except Exception as e:
         print(f"⚠️ Error al registrar auditoría: {e}")
+
+app.include_router(build_admin_reset_router(usuarios, log_audit))
 
 def ensure_auth_containers():
     """

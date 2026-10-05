@@ -481,6 +481,26 @@
         </div>
     </div>
 
+    <dialog id="reset-password-dialog" style="border:0;border-radius:16px;width:min(520px,90vw);padding:24px">
+        <form id="reset-password-form">
+            <h2>Restablecer contraseña de la app</h2>
+            <p id="reset-password-target"></p>
+            <p>Verifica la identidad de la persona por un medio conocido antes de cambiar su acceso. Su usuario y campus se conservan.</p>
+            <div class="form-group"><label for="reset-password-new">Nueva contraseña</label>
+                <input id="reset-password-new" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+                <small>Mínimo 8 caracteres, con mayúsculas, minúsculas y números.</small></div>
+            <div class="form-group"><label for="reset-password-repeat">Confirmar contraseña</label>
+                <input id="reset-password-repeat" type="password" autocomplete="new-password" required></div>
+            <label><input id="reset-password-show" type="checkbox"> Mostrar contraseña</label>
+            <p><label><input id="reset-password-verified" type="checkbox" required> He verificado la identidad de esta persona.</label></p>
+            <p>Comunícale la nueva contraseña por un medio privado. Este cambio no envía correos.</p>
+            <p id="reset-password-error" role="alert" style="color:#b42318"></p>
+            <div class="modal-footer">
+                <button id="reset-password-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+                <button id="reset-password-submit" type="submit" class="btn btn-primary">Restablecer contraseña</button>
+            </div>
+        </form>
+    </dialog>
     <script src="access.js"></script>
     <script src="app.js"></script>
 </body>
